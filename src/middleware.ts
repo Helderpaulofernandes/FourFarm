@@ -1,15 +1,8 @@
-import { auth } from "@/lib/auth";
-import { NextResponse } from "next/server";
+import NextAuth from "next-auth";
+import { authConfig } from "@/lib/auth.config";
 
-export default auth((req) => {
-  const isLoggedIn = !!req.auth;
-  const isLoginPage = req.nextUrl.pathname === "/admin/login";
-
-  if (!isLoggedIn && !isLoginPage) {
-    const loginUrl = new URL("/admin/login", req.nextUrl.origin);
-    return NextResponse.redirect(loginUrl);
-  }
-});
+export const { auth: middleware } = NextAuth(authConfig);
+export default middleware;
 
 export const config = {
   matcher: ["/admin/:path*"],
