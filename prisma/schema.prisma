@@ -1,0 +1,318 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ---------- Enums ----------
+
+enum UnitType {
+  BED
+  TRACTOR
+}
+
+enum UnitStatus {
+  AVAILABLE
+  OCCUPIED
+  RESTING
+  INACTIVE
+}
+
+enum OccupantType {
+  CROP_PLANTING
+  BIRD_BATCH
+}
+
+enum OccupancyStatus {
+  ACTIVE
+  COMPLETED
+  ABANDONED
+}
+
+enum PropagationMethod {
+  DIRECT_SEED
+  TRANSPLANT
+  BOTH
+}
+
+enum Season {
+  WET
+  DRY
+}
+
+enum InputCategory {
+  COMPOST
+  CONDITIONER
+  AMENDMENT
+  FEED
+  OTHER
+}
+
+enum ProductType {
+  CROP
+  LIVESTOCK
+}
+
+// ---------- Tenant + auth ----------
+
+model Farm {
+  id        String   @id @default(cuid())
+  name      String
+  timezone  String   @default("Africa/Johannesburg")
+  createdAt DateTime @default(now())
+
+  users             User[]
+  crops             Crop[]
+  protectionMethods ProtectionMethod[]
+  inputMaterials    InputMaterial[]
+  growingUnits      GrowingUnit[]
+  products          Product[]
+}
+
+model User {
+  id            String    @id @default(cuid())
+  farmId        String
+  farm          Farm      @relation(fields: [farmId], references: [id])
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  role          String    @default("STAFF")
+  passwordHash  String?
+
+  accounts Account[]
+  sessions Session[]
+
+  @@index([farmId])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---------- Crop database ----------
+
+model Crop {
+  id                String            @id @default(cuid())
+  farmId            String
+  farm              Farm              @relation(fields: [farmId], references: [id])
+  name              String
+  variety           String?
+  propagationMethod PropagationMethod @default(TRANSPLANT)
+  daysToMaturityMin Int
+  daysToMaturityMax Int
+  spacingCm         Int
+  createdAt         DateTime          @default(now())
+
+  protectionMethods   CropProtectionMethod[]
+  seasonalMultipliers CropSeasonalMultiplier[]
+  plantings           CropPlanting[]
+
+  @@unique([farmId, name, variety])
+  @@index([farmId])
+}
+
+model ProtectionMethod {
+  id     String  @id @default(cuid())
+  farmId String
+  farm   Farm    @relation(fields: [farmId], references: [id])
+  name   String // e.g. "Insect mesh / flymesh", "Shade cloth", "Greenhouse film"
+  notes  String?
+
+  crops CropProtectionMethod[]
+
+  @@unique([farmId, name])
+  @@index([farmId])
+}
+
+// A crop can need different protection depending on season (e.g. shade cloth only in dry season).
+// season = null means the association applies year-round.
+model CropProtectionMethod {
+  id                 String            @id @default(cuid())
+  cropId             String
+  crop               Crop              @relation(fields: [cropId], references: [id], onDelete: Cascade)
+  protectionMethodId String
+  protectionMethod   ProtectionMethod  @relation(fields: [protectionMethodId], references: [id], onDelete: Cascade)
+  season             Season?
+
+  @@unique([cropId, protectionMethodId, season])
+}
+
+// Subtropical wet/dry-season growth-rate adjustment, applied to daysToMaturity.
+model CropSeasonalMultiplier {
+  id         String @id @default(cuid())
+  cropId     String
+  crop       Crop   @relation(fields: [cropId], references: [id], onDelete: Cascade)
+  season     Season
+  multiplier Float // 1.0 = normal, >1.0 = slower growth, <1.0 = faster
+
+  @@unique([cropId, season])
+}
+
+// ---------- Inputs (organic no-till: compost, conditioners, amendments; also feed) ----------
+
+model InputMaterial {
+  id          String        @id @default(cuid())
+  farmId      String
+  farm        Farm          @relation(fields: [farmId], references: [id])
+  name        String
+  category    InputCategory
+  unit        String // e.g. "kg", "L", "bag"
+  costPerUnit Float
+  createdAt   DateTime      @default(now())
+
+  applications InputApplication[]
+
+  @@unique([farmId, name])
+  @@index([farmId])
+}
+
+// ---------- Shared spatial + lifecycle spine (beds AND tractors) ----------
+
+model GrowingUnit {
+  id        String     @id @default(cuid())
+  farmId    String
+  farm      Farm       @relation(fields: [farmId], references: [id])
+  unitType  UnitType
+  label     String // e.g. "Bed A3", "Tractor 2"
+  gridX     Int?
+  gridY     Int?
+  lengthM   Float?
+  widthM    Float?
+  capacity  Int? // for tractors: bird capacity
+  status    UnitStatus @default(AVAILABLE)
+  createdAt DateTime   @default(now())
+
+  occupancies Occupancy[]
+
+  @@unique([farmId, label])
+  @@index([farmId])
+}
+
+model Occupancy {
+  id            String          @id @default(cuid())
+  growingUnitId String
+  growingUnit   GrowingUnit     @relation(fields: [growingUnitId], references: [id])
+  occupantType  OccupantType
+  startedAt     DateTime
+  endedAt       DateTime?
+  status        OccupancyStatus @default(ACTIVE)
+  successionNo  Int             @default(1)
+
+  cropPlanting      CropPlanting?
+  events            LifecycleEvent[]
+  inputApplications InputApplication[]
+  harvestRecords    HarvestRecord[]
+
+  @@index([growingUnitId])
+}
+
+model CropPlanting {
+  id                String            @id @default(cuid())
+  occupancyId       String            @unique
+  occupancy         Occupancy         @relation(fields: [occupancyId], references: [id], onDelete: Cascade)
+  cropId            String
+  crop              Crop              @relation(fields: [cropId], references: [id])
+  propagationMethod PropagationMethod
+  sownAt            DateTime?
+  transplantedAt    DateTime?
+  expectedHarvestAt DateTime?
+
+  @@index([cropId])
+}
+
+// Append-only narrative log written from the mobile logging UI (watering, pest treatment, notes+photo, etc.)
+model LifecycleEvent {
+  id          String    @id @default(cuid())
+  occupancyId String
+  occupancy   Occupancy @relation(fields: [occupancyId], references: [id], onDelete: Cascade)
+  eventType   String
+  occurredAt  DateTime  @default(now())
+  notes       String?
+  photoUrl    String?
+  createdById String?
+
+  @@index([occupancyId])
+}
+
+// Shared cost ledger: compost applied to a bed, or feed given to a tractor, same table.
+model InputApplication {
+  id              String        @id @default(cuid())
+  occupancyId     String
+  occupancy       Occupancy     @relation(fields: [occupancyId], references: [id], onDelete: Cascade)
+  inputMaterialId String
+  inputMaterial   InputMaterial @relation(fields: [inputMaterialId], references: [id])
+  quantity        Float
+  costSnapshot    Float // quantity * costPerUnit at time of application
+  appliedAt       DateTime      @default(now())
+
+  @@index([occupancyId])
+  @@index([inputMaterialId])
+}
+
+// ---------- Products (minimal Phase 1 stub; Price/Order arrive in Phase 2/3) ----------
+
+model Product {
+  id            String      @id @default(cuid())
+  farmId        String
+  farm          Farm        @relation(fields: [farmId], references: [id])
+  name          String
+  productType   ProductType
+  unit          String // e.g. "bunch", "kg", "dozen"
+  publicVisible Boolean     @default(false)
+  description   String?
+  createdAt     DateTime    @default(now())
+
+  harvestRecords HarvestRecord[]
+
+  @@unique([farmId, name])
+  @@index([farmId])
+}
+
+model HarvestRecord {
+  id          String    @id @default(cuid())
+  occupancyId String
+  occupancy   Occupancy @relation(fields: [occupancyId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id])
+  quantity    Float
+  harvestedAt DateTime  @default(now())
+
+  @@index([occupancyId])
+  @@index([productId])
+}
