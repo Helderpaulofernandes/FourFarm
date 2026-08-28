@@ -24,3 +24,13 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* The admin UI doesn't have a dark theme yet — force form controls to a
+   fixed light appearance so text doesn't inherit the dark-mode --foreground
+   (near-white) onto a white input background and become unreadable. */
+input,
+select,
+textarea {
+  background-color: #ffffff;
+  color: #1c1917;
+}
