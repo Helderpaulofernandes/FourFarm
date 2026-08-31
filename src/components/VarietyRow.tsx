@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { VarietyBreedForm } from "@/components/VarietyBreedForm";
 
 type Profile = {
@@ -63,7 +64,7 @@ export function VarietyRow({ variety, speciesOptions }: { variety: Variety; spec
           {p.cropProfile && (
             <span>
               {" "}
-              · {p.nurseryRequired ? `${p.targetNurseryDays}d nursery, ` : ""}
+              · {p.nurseryRequired && p.targetNurseryDays != null ? `${p.targetNurseryDays}d nursery, ` : ""}
               harvest ~{p.targetHarvestStartDays}d · {p.cropProfile.plantSpacingMm}×{p.cropProfile.rowSpacingMm}mm spacing
             </span>
           )}
@@ -78,7 +79,10 @@ export function VarietyRow({ variety, speciesOptions }: { variety: Variety; spec
               {p.poultryProfile.expectedLiveWeightKg ? ` · ${p.poultryProfile.expectedLiveWeightKg}kg target` : ""}
             </span>
           )}
-          {p.workflowTemplates.length > 0 && <span> · {p.workflowTemplates.length} workflow template(s)</span>}
+          {" · "}
+          <Link href={`/admin/species/${p.id}`} className="text-green-700 underline">
+            {p.workflowTemplates.length > 0 ? "Manage workflow" : "Add workflow"}
+          </Link>
         </div>
       ))}
       {variety.profiles.length === 0 && <p className="mt-1 text-xs text-stone-400">No production profile yet.</p>}

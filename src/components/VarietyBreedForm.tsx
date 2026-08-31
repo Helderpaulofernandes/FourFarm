@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import type { z } from "zod";
 import { varietyBreedSchema, type VarietyBreedInput } from "@/schemas/species";
 import { createVarietyBreed, updateVarietyBreed } from "@/server/actions/species";
 
@@ -27,7 +28,7 @@ export function VarietyBreedForm({
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<VarietyBreedInput>({
+  } = useForm<z.input<typeof varietyBreedSchema>, unknown, VarietyBreedInput>({
     resolver: zodResolver(varietyBreedSchema),
     defaultValues: existing ?? { speciesId: species[0]?.id },
   });

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { optionalPositiveInt, optionalPositiveNumber } from "@/lib/zod-helpers";
 
 export const kingdoms = ["PLANT", "ANIMAL", "FUNGI"] as const;
 export const rotationGroups = ["ROOT", "ALLIUM", "FRUIT", "LEGUME", "LEAF"] as const;
@@ -15,7 +16,10 @@ export type SpeciesInput = z.infer<typeof speciesSchema>;
 export const varietyBreedSchema = z.object({
   speciesId: z.string().min(1, "Required"),
   name: z.string().min(1, "Required"),
-  rotationGroup: z.enum(rotationGroups).optional(),
+  // An HTML <select>'s empty placeholder option submits "" — z.enum().optional()
+  // only accepts undefined, so without this preprocess step, leaving rotation
+  // group unset silently fails validation and the form appears to do nothing.
+  rotationGroup: z.preprocess((v) => (v === "" ? undefined : v), z.enum(rotationGroups).optional()),
   publicDescription: z.string().optional(),
 });
 export type VarietyBreedInput = z.infer<typeof varietyBreedSchema>;
@@ -25,13 +29,13 @@ export const cropProfileSchema = z.object({
   methodId: z.string().min(1, "Required"),
   name: z.string().min(1, "Required"),
   nurseryRequired: z.boolean().default(true),
-  targetNurseryDays: z.coerce.number().int().positive().optional(),
+  targetNurseryDays: optionalPositiveInt(),
   targetHarvestStartDays: z.coerce.number().int().positive(),
-  targetHarvestWindowDays: z.coerce.number().int().positive().optional(),
+  targetHarvestWindowDays: optionalPositiveInt(),
   plantSpacingMm: z.coerce.number().int().positive(),
   rowSpacingMm: z.coerce.number().int().positive(),
-  daysToGerminationTypical: z.coerce.number().int().positive().optional(),
-  hardeningDays: z.coerce.number().int().positive().optional(),
+  daysToGerminationTypical: optionalPositiveInt(),
+  hardeningDays: optionalPositiveInt(),
 });
 export type CropProfileInput = z.infer<typeof cropProfileSchema>;
 
@@ -43,12 +47,12 @@ export const poultryProfileSchema = z.object({
   name: z.string().min(1, "Required"),
   flockType: z.enum(flockTypes),
   breedName: z.string().optional(),
-  broodingDays: z.coerce.number().int().positive().optional(),
-  growOutDays: z.coerce.number().int().positive().optional(),
-  targetStockingDensity: z.coerce.number().positive().optional(),
-  expectedFeedConsumptionPerBirdDay: z.coerce.number().positive().optional(),
-  expectedEggsPerHenWeek: z.coerce.number().positive().optional(),
-  expectedLiveWeightKg: z.coerce.number().positive().optional(),
-  targetProcessingAgeDays: z.coerce.number().int().positive().optional(),
+  broodingDays: optionalPositiveInt(),
+  growOutDays: optionalPositiveInt(),
+  targetStockingDensity: optionalPositiveNumber(),
+  expectedFeedConsumptionPerBirdDay: optionalPositiveNumber(),
+  expectedEggsPerHenWeek: optionalPositiveNumber(),
+  expectedLiveWeightKg: optionalPositiveNumber(),
+  targetProcessingAgeDays: optionalPositiveInt(),
 });
 export type PoultryProfileInput = z.infer<typeof poultryProfileSchema>;

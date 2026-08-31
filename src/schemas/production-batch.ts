@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { optionalPositiveNumber } from "@/lib/zod-helpers";
 
 export const enterpriseTypes = ["NURSERY", "MARKET_GARDEN", "FOREST", "LAYERS", "BROILERS"] as const;
 
@@ -16,7 +17,7 @@ export type CreateBatchInput = z.infer<typeof createBatchSchema>;
 export const moveBatchSchema = z.object({
   batchId: z.string().min(1),
   areaId: z.string().min(1),
-  quantity: z.coerce.number().positive().optional(),
+  quantity: optionalPositiveNumber(),
 });
 export type MoveBatchInput = z.infer<typeof moveBatchSchema>;
 
@@ -46,7 +47,7 @@ export const logActivitySchema = z.object({
   batchId: z.string().min(1),
   activityType: z.enum(activityTypes),
   notes: z.string().optional(),
-  quantity: z.coerce.number().positive().optional(),
+  quantity: optionalPositiveNumber(),
 });
 export type LogActivityInput = z.infer<typeof logActivitySchema>;
 
