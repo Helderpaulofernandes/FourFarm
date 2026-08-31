@@ -2,22 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { endOccupancy } from "@/server/actions/growing-units";
+import { completeBatch } from "@/server/actions/production-batches";
 
-export function EndOccupancyButton({
-  occupancyId,
-  growingUnitId,
-}: {
-  occupancyId: string;
-  growingUnitId: string;
-}) {
+export function CompleteBatchButton({ batchId }: { batchId: string }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
 
   async function handleClick() {
-    if (!confirm("End this occupancy? The unit will become available for a new planting/batch.")) return;
+    if (!confirm("Mark this batch as completed? Its area will become available again.")) return;
     setSubmitting(true);
-    await endOccupancy(occupancyId, growingUnitId);
+    await completeBatch(batchId);
     setSubmitting(false);
     router.refresh();
   }
@@ -28,7 +22,7 @@ export function EndOccupancyButton({
       disabled={submitting}
       className="h-10 rounded-lg border border-stone-300 px-4 text-sm font-medium text-stone-700 disabled:opacity-60"
     >
-      {submitting ? "Ending..." : "End occupancy"}
+      {submitting ? "Completing..." : "Complete batch"}
     </button>
   );
 }

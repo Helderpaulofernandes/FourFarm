@@ -10,84 +10,225 @@ datasource db {
 
 // ---------- Enums ----------
 
-enum UnitType {
+enum Kingdom {
+  PLANT
+  ANIMAL
+  FUNGI
+}
+
+enum LifeCycle {
+  ANNUAL
+  BIENNIAL
+  PERENNIAL
+}
+
+enum RecordType {
+  CULTIVAR
+  BREED
+  STRAIN
+}
+
+enum RotationGroup {
+  ROOT
+  ALLIUM
+  FRUIT
+  LEGUME
+  LEAF
+}
+
+enum ProductionSystem {
+  NURSERY
+  MARKET_GARDEN
+  FOREST
+  LAYERS
+  BROILERS
+}
+
+enum AreaType {
   BED
+  NURSERY_BENCH
   TRACTOR
+  FOREST_ROW
+  COOP
+  PADDOCK
 }
 
-enum UnitStatus {
-  AVAILABLE
-  OCCUPIED
-  RESTING
-  INACTIVE
+enum ConfidenceLevel {
+  ESTIMATED
+  TESTED
+  VALIDATED
 }
 
-enum OccupantType {
-  CROP_PLANTING
-  BIRD_BATCH
+enum SourceType {
+  SUPPLIER
+  LITERATURE
+  OWN_TRIAL
 }
 
-enum OccupancyStatus {
-  ACTIVE
+enum MaturityBasis {
+  FROM_SOWING
+  FROM_TRANSPLANT
+}
+
+enum Suitability {
+  PREFERRED
+  POSSIBLE
+  AVOID
+}
+
+enum AnchorType {
+  SEED_DATE
+  TARGET_HARVEST
+  HATCH_DATE
+}
+
+enum SchedulingDirection {
+  FORWARD
+  BACKWARD
+}
+
+enum ActivityType {
+  SOW
+  GERMINATION_CHECK
+  POT_UP
+  HARDEN_OFF
+  TRANSPLANT
+  WATER
+  FERTILIZE
+  PEST_TREATMENT
+  WEED
+  PRUNE
+  TRELLIS
+  MULCH
+  HARVEST
+  MOVE
+  FEED
+  COLLECT_EGGS
+  MORTALITY
+  OBSERVATION
+  OTHER
+}
+
+enum RelationshipType {
+  FINISH_TO_START
+}
+
+enum TriggerType {
+  TIME
+  CONDITION
+  OBSERVATION
+}
+
+enum BatchStatus {
+  PLANNED
+  SEEDED
+  IN_NURSERY
+  READY_TO_TRANSPLANT
+  TRANSPLANTED
+  GROWING
+  HARVESTING
   COMPLETED
   ABANDONED
 }
 
-enum PropagationMethod {
-  DIRECT_SEED
-  TRANSPLANT
-  BOTH
+enum PublicStatus {
+  PRIVATE
+  CANDIDATE
+  DRAFT
+  REVIEW
+  APPROVED
+  PUBLISHED
+  RETIRED
 }
 
-enum Season {
-  WET
-  DRY
+enum PlacementType {
+  SOWN
+  TRANSPLANTED
+  MOVED
+  GRAZED
 }
 
-enum InputCategory {
+enum ActivityStatus {
+  PLANNED
+  DONE
+  SKIPPED
+}
+
+enum ItemType {
+  SEED
+  FEED
   COMPOST
   CONDITIONER
   AMENDMENT
-  FEED
+  PACKAGING
+  PRODUCT
   OTHER
 }
 
-enum ProductType {
-  CROP
-  LIVESTOCK
+enum LotStatus {
+  AVAILABLE
+  QUARANTINED
+  EXHAUSTED
 }
 
-// ---------- Tenant + auth ----------
+enum UserRole {
+  OWNER
+  PLANNER
+  FIELD_WORKER
+  ADMIN
+}
 
-model Farm {
+// ---------- Foundation ----------
+
+model Tenant {
   id        String   @id @default(cuid())
   name      String
-  timezone  String   @default("Africa/Johannesburg")
+  slug      String   @unique
   createdAt DateTime @default(now())
 
-  users             User[]
-  crops             Crop[]
-  protectionMethods ProtectionMethod[]
-  inputMaterials    InputMaterial[]
-  growingUnits      GrowingUnit[]
+  farms Farm[]
+  users User[]
+}
+
+model Farm {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  name            String
+  timezone        String   @default("Australia/Brisbane")
+  climateZone     String?
+  latitude        Float?
+  longitude       Float?
+  defaultAreaUnit String   @default("m2")
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  areas             ProductionArea[]
+  species           Species[]
+  productionMethods ProductionMethod[]
+  batches           ProductionBatch[]
+  items             Item[]
   products          Product[]
+  activities        Activity[]
+
+  @@index([tenantId])
 }
 
 model User {
   id            String    @id @default(cuid())
-  farmId        String
-  farm          Farm      @relation(fields: [farmId], references: [id])
+  tenantId      String
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
   name          String?
   email         String    @unique
   emailVerified DateTime?
   image         String?
-  role          String    @default("STAFF")
+  role          UserRole  @default(FIELD_WORKER)
   passwordHash  String?
 
   accounts Account[]
   sessions Session[]
 
-  @@index([farmId])
+  @@index([tenantId])
 }
 
 model Account {
@@ -125,194 +266,461 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-// ---------- Crop database ----------
+// ---------- Spatial ----------
 
-model Crop {
-  id                String            @id @default(cuid())
-  farmId            String
-  farm              Farm              @relation(fields: [farmId], references: [id])
+model ProductionArea {
+  id            String   @id @default(cuid())
+  farmId        String
+  farm          Farm     @relation(fields: [farmId], references: [id])
+  parentAreaId  String?
+  parentArea    ProductionArea?  @relation("AreaHierarchy", fields: [parentAreaId], references: [id])
+  childAreas    ProductionArea[] @relation("AreaHierarchy")
+  areaType      AreaType
+  code          String
+  name          String
+  gridX         Int?
+  gridY         Int?
+  lengthM       Float?
+  widthM        Float?
+  areaM2        Float?
+  capacity      Int?
+  capacityUnit  String?
+  soilType      String?
+  activeFrom    DateTime?
+  activeTo      DateTime?
+  publicVisible Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  batchLocations BatchLocation[]
+  activities     Activity[]
+  observations   Observation[]
+  harvests       Harvest[]
+
+  @@unique([farmId, code])
+  @@index([farmId])
+  @@index([parentAreaId])
+}
+
+// ---------- Biological reference ----------
+
+model Species {
+  id             String     @id @default(cuid())
+  farmId         String
+  farm           Farm       @relation(fields: [farmId], references: [id])
+  kingdom        Kingdom
+  commonName     String
+  scientificName String?
+  family         String?
+  lifeCycle      LifeCycle?
+  nativeStatus   String?
+  primaryRole    String?
+  description    String?
+  active         Boolean    @default(true)
+
+  varieties VarietyBreed[]
+
+  @@unique([farmId, commonName])
+  @@index([farmId])
+}
+
+model VarietyBreed {
+  id                String         @id @default(cuid())
+  speciesId         String
+  species           Species        @relation(fields: [speciesId], references: [id])
   name              String
-  variety           String?
-  propagationMethod PropagationMethod @default(TRANSPLANT)
-  daysToMaturityMin Int
-  daysToMaturityMax Int
-  spacingCm         Int
-  createdAt         DateTime          @default(now())
+  recordType        RecordType     @default(CULTIVAR)
+  rotationGroup     RotationGroup?
+  openPollinated    Boolean?
+  hybrid            Boolean?
+  heirloom          Boolean?
+  typicalColour     String?
+  typicalMatureSize String?
+  publicDescription String?
+  active            Boolean        @default(true)
 
-  protectionMethods   CropProtectionMethod[]
-  seasonalMultipliers CropSeasonalMultiplier[]
-  plantings           CropPlanting[]
+  profiles ProductionProfile[]
+  batches  ProductionBatch[]
+  products Product[]
 
-  @@unique([farmId, name, variety])
-  @@index([farmId])
+  @@unique([speciesId, name])
+  @@index([speciesId])
 }
 
-model ProtectionMethod {
-  id     String  @id @default(cuid())
-  farmId String
-  farm   Farm    @relation(fields: [farmId], references: [id])
-  name   String // e.g. "Insect mesh / flymesh", "Shade cloth", "Greenhouse film"
-  notes  String?
+// ---------- Production knowledge ----------
 
-  crops CropProtectionMethod[]
+model ProductionMethod {
+  id                    String           @id @default(cuid())
+  farmId                String
+  farm                  Farm             @relation(fields: [farmId], references: [id])
+  name                  String
+  productionSystem      ProductionSystem
+  internalDescription   String?
+  publicDescription     String?
+  certificationRelevant Boolean          @default(false)
+  active                Boolean          @default(true)
+
+  profiles ProductionProfile[]
 
   @@unique([farmId, name])
   @@index([farmId])
 }
 
-// A crop can need different protection depending on season (e.g. shade cloth only in dry season).
-// season = null means the association applies year-round.
-model CropProtectionMethod {
-  id                 String            @id @default(cuid())
-  cropId             String
-  crop               Crop              @relation(fields: [cropId], references: [id], onDelete: Cascade)
-  protectionMethodId String
-  protectionMethod   ProtectionMethod  @relation(fields: [protectionMethodId], references: [id], onDelete: Cascade)
-  season             Season?
+model ProductionProfile {
+  id                      String           @id @default(cuid())
+  varietyBreedId          String
+  varietyBreed            VarietyBreed     @relation(fields: [varietyBreedId], references: [id])
+  methodId                String
+  method                  ProductionMethod @relation(fields: [methodId], references: [id])
+  name                    String
+  version                 Int              @default(1)
+  effectiveFrom           DateTime?
+  effectiveTo             DateTime?
+  locationOrClimateZone   String?
+  nurseryRequired         Boolean          @default(false)
+  targetNurseryDays       Int?
+  targetProductionDays    Int?
+  targetHarvestStartDays  Int?
+  targetHarvestWindowDays Int?
+  expectedSurvivalPct     Float?
+  expectedYieldValue      Float?
+  expectedYieldUnit       String?
+  sourceType              SourceType?
+  sourceReference         String?
+  confidenceLevel         ConfidenceLevel  @default(ESTIMATED)
+  approvedBy              String?
+  approvedAt              DateTime?
+  active                  Boolean          @default(true)
 
-  @@unique([cropId, protectionMethodId, season])
+  cropProfile       CropProfile?
+  seasonRules       SeasonRule[]
+  workflowTemplates WorkflowTemplate[]
+  batches           ProductionBatch[]
+
+  @@unique([varietyBreedId, methodId, version])
+  @@index([varietyBreedId])
 }
 
-// Subtropical wet/dry-season growth-rate adjustment, applied to daysToMaturity.
-model CropSeasonalMultiplier {
-  id         String @id @default(cuid())
-  cropId     String
-  crop       Crop   @relation(fields: [cropId], references: [id], onDelete: Cascade)
-  season     Season
-  multiplier Float // 1.0 = normal, >1.0 = slower growth, <1.0 = faster
+// Plant-specific extension of ProductionProfile. Future NurseryProfile/TreeProfile/
+// PoultryProfile extensions attach the same way without touching this table.
+model CropProfile {
+  id      String            @id @default(cuid())
+  profileId String          @unique
+  profile ProductionProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
-  @@unique([cropId, season])
+  daysToGerminationMin     Int?
+  daysToGerminationTypical Int?
+  daysToGerminationMax     Int?
+  germinationRatePct       Float?
+  germinationTempMinC      Float?
+  germinationTempOptC      Float?
+  germinationTempMaxC      Float?
+  seedDepthMm              Float?
+  seedsPerCell             Int?
+  seedsPerMetre            Float?
+  recommendedTrayType      String?
+  daysInNursery            Int?
+  hardeningDays            Int?
+  targetTransplantAgeDays  Int?
+  plantSpacingMm           Int?
+  rowSpacingMm             Int?
+  bedWidthMm               Int?
+  plantsPerM2              Float?
+  trellisRequired          Boolean       @default(false)
+  pruningRequired          Boolean       @default(false)
+  mulchRecommended         Boolean       @default(false)
+  frostSensitivity         String?
+  heatSensitivity          String?
+  droughtTolerance         String?
+  shadeTolerance           String?
+  maturityBasis            MaturityBasis @default(FROM_TRANSPLANT)
+  daysToFirstHarvest       Int?
+  harvestWindowDays        Int?
+  harvestFrequencyDays     Int?
+  successionFriendly       Boolean       @default(false)
+  successionIntervalDays   Int?
 }
 
-// ---------- Inputs (organic no-till: compost, conditioners, amendments; also feed) ----------
+// Season windows as rows, not Jan-Dec columns — supports multiple climate zones
+// and activity types without a schema change.
+model SeasonRule {
+  id                    String            @id @default(cuid())
+  profileId             String
+  profile               ProductionProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  locationOrClimateZone String?
+  activityType          ActivityType
+  startMonth            Int
+  startWeek             Int?
+  endMonth              Int
+  endWeek               Int?
+  suitability           Suitability
+  constraintType        String?
+  minThreshold          Float?
+  maxThreshold          Float?
+  notes                 String?
 
-model InputMaterial {
-  id          String        @id @default(cuid())
-  farmId      String
-  farm        Farm          @relation(fields: [farmId], references: [id])
-  name        String
-  category    InputCategory
-  unit        String // e.g. "kg", "L", "bag"
-  costPerUnit Float
-  createdAt   DateTime      @default(now())
+  @@index([profileId])
+}
 
-  applications InputApplication[]
+// ---------- Workflow templates ----------
 
-  @@unique([farmId, name])
+model WorkflowTemplate {
+  id                  String              @id @default(cuid())
+  profileId           String
+  profile             ProductionProfile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  name                String
+  version             Int                 @default(1)
+  anchorType          AnchorType          @default(SEED_DATE)
+  schedulingDirection SchedulingDirection @default(FORWARD)
+  effectiveFrom       DateTime?
+  effectiveTo         DateTime?
+  active              Boolean             @default(true)
+
+  taskTemplates WorkflowTaskTemplate[]
+  batches       ProductionBatch[]
+
+  @@index([profileId])
+}
+
+// Offset days are relative to the workflow's anchor (usually seed date) — see
+// WorkflowTemplate.anchorType. TaskDate = Batch.actualStartDate + offsetFromAnchorDays.
+model WorkflowTaskTemplate {
+  id                        String                @id @default(cuid())
+  workflowTemplateId        String
+  workflowTemplate          WorkflowTemplate      @relation(fields: [workflowTemplateId], references: [id], onDelete: Cascade)
+  taskType                  ActivityType
+  taskName                  String
+  sequence                  Int
+  predecessorTaskTemplateId String?
+  predecessorTaskTemplate   WorkflowTaskTemplate?  @relation("TaskDependency", fields: [predecessorTaskTemplateId], references: [id])
+  dependentTasks            WorkflowTaskTemplate[] @relation("TaskDependency")
+  relationshipType          RelationshipType?
+  lagDays                   Int?
+  offsetFromAnchorDays      Int?
+  durationDays              Int                   @default(1)
+  triggerType               TriggerType           @default(TIME)
+  triggerRule               String?
+  responsibleRole           String?
+  standardLabourMinutes     Int?
+  publicEligible            Boolean               @default(false)
+
+  @@index([workflowTemplateId])
+}
+
+// ---------- Production transactions (the shared spine) ----------
+
+model ProductionBatch {
+  id                   String            @id @default(cuid())
+  farmId               String
+  farm                 Farm              @relation(fields: [farmId], references: [id])
+  parentBatchId        String?
+  parentBatch          ProductionBatch?  @relation("BatchLineage", fields: [parentBatchId], references: [id])
+  childBatches         ProductionBatch[] @relation("BatchLineage")
+  batchCode            String
+  enterpriseType       ProductionSystem
+  varietyBreedId       String
+  varietyBreed         VarietyBreed      @relation(fields: [varietyBreedId], references: [id])
+  profileId            String?
+  profile              ProductionProfile? @relation(fields: [profileId], references: [id])
+  profileVersion       Int?
+  workflowTemplateId   String?
+  workflowTemplate     WorkflowTemplate? @relation(fields: [workflowTemplateId], references: [id])
+  plannedStartDate     DateTime?
+  actualStartDate      DateTime?
+  targetCompletionDate DateTime?
+  actualCompletionDate DateTime?
+  initialQuantity      Float?
+  currentQuantity      Float?
+  quantityUnit         String?
+  status               BatchStatus       @default(PLANNED)
+  publicStatus         PublicStatus      @default(PRIVATE)
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  locations    BatchLocation[]
+  activities   Activity[]
+  observations Observation[]
+  harvests     Harvest[]
+
+  @@unique([farmId, batchCode])
   @@index([farmId])
+  @@index([varietyBreedId])
 }
 
-// ---------- Shared spatial + lifecycle spine (beds AND tractors) ----------
-
-model GrowingUnit {
-  id        String     @id @default(cuid())
-  farmId    String
-  farm      Farm       @relation(fields: [farmId], references: [id])
-  unitType  UnitType
-  label     String // e.g. "Bed A3", "Tractor 2"
-  gridX     Int?
-  gridY     Int?
-  lengthM   Float?
-  widthM    Float?
-  capacity  Int? // for tractors: bird capacity
-  status    UnitStatus @default(AVAILABLE)
-  createdAt DateTime   @default(now())
-
-  occupancies Occupancy[]
-
-  @@unique([farmId, label])
-  @@index([farmId])
-}
-
-model Occupancy {
+// Full occupancy history — a batch's nursery-bench time and its bed time are
+// both rows here, which is what makes the nursery-to-garden handoff a single
+// traceable batch instead of two disconnected records.
+model BatchLocation {
   id            String          @id @default(cuid())
-  growingUnitId String
-  growingUnit   GrowingUnit     @relation(fields: [growingUnitId], references: [id])
-  occupantType  OccupantType
-  startedAt     DateTime
-  endedAt       DateTime?
-  status        OccupancyStatus @default(ACTIVE)
-  successionNo  Int             @default(1)
+  batchId       String
+  batch         ProductionBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  areaId        String
+  area          ProductionArea  @relation(fields: [areaId], references: [id])
+  startDateTime DateTime
+  endDateTime   DateTime?
+  quantity      Float?
+  unit          String?
+  placementType PlacementType
+  activityId    String?
+  activity      Activity?       @relation(fields: [activityId], references: [id])
+  notes         String?
 
-  cropPlanting      CropPlanting?
-  events            LifecycleEvent[]
-  inputApplications InputApplication[]
-  harvestRecords    HarvestRecord[]
-
-  @@index([growingUnitId])
+  @@index([batchId])
+  @@index([areaId])
 }
 
-model CropPlanting {
-  id                String            @id @default(cuid())
-  occupancyId       String            @unique
-  occupancy         Occupancy         @relation(fields: [occupancyId], references: [id], onDelete: Cascade)
-  cropId            String
-  crop              Crop              @relation(fields: [cropId], references: [id])
-  propagationMethod PropagationMethod
-  sownAt            DateTime?
-  transplantedAt    DateTime?
-  expectedHarvestAt DateTime?
+// Generalizes the old LifecycleEvent — planned or completed work, for a crop
+// planting or a bird batch alike.
+model Activity {
+  id                  String         @id @default(cuid())
+  farmId              String
+  farm                Farm           @relation(fields: [farmId], references: [id])
+  batchId             String?
+  batch               ProductionBatch? @relation(fields: [batchId], references: [id])
+  areaId              String?
+  area                ProductionArea?  @relation(fields: [areaId], references: [id])
+  taskTemplateId      String?
+  activityType        ActivityType
+  plannedDateTime     DateTime?
+  actualStartDateTime DateTime?
+  actualEndDateTime   DateTime?
+  status              ActivityStatus @default(PLANNED)
+  quantity            Float?
+  unit                String?
+  performedByUserId   String?
+  reasonCode          String?
+  internalNotes       String?
+  publicSummary       String?
+  publicStatus        PublicStatus   @default(PRIVATE)
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
 
-  @@index([cropId])
+  batchLocations BatchLocation[]
+  inputs         ActivityInput[]
+  observations   Observation[]
+
+  @@index([farmId])
+  @@index([batchId])
+  @@index([areaId])
 }
 
-// Append-only narrative log written from the mobile logging UI (watering, pest treatment, notes+photo, etc.)
-model LifecycleEvent {
-  id          String    @id @default(cuid())
-  occupancyId String
-  occupancy   Occupancy @relation(fields: [occupancyId], references: [id], onDelete: Cascade)
-  eventType   String
-  occurredAt  DateTime  @default(now())
-  notes       String?
-  photoUrl    String?
-  createdById String?
+// Kept distinct from Activity: "applied 25kg compost" (Activity) vs.
+// "leaf colour improved" (Observation).
+model Observation {
+  id                       String   @id @default(cuid())
+  batchId                  String?
+  batch                    ProductionBatch? @relation(fields: [batchId], references: [id])
+  areaId                   String?
+  area                     ProductionArea?  @relation(fields: [areaId], references: [id])
+  observationType          String
+  observedAt               DateTime @default(now())
+  measurementValue         Float?
+  unit                     String?
+  rating                   String?
+  notes                    String?
+  correctiveActionRequired Boolean  @default(false)
+  correctiveActivityId     String?
+  correctiveActivity       Activity? @relation(fields: [correctiveActivityId], references: [id])
+  publicEligible           Boolean  @default(false)
 
-  @@index([occupancyId])
+  @@index([batchId])
+  @@index([areaId])
 }
 
-// Shared cost ledger: compost applied to a bed, or feed given to a tractor, same table.
-model InputApplication {
-  id              String        @id @default(cuid())
-  occupancyId     String
-  occupancy       Occupancy     @relation(fields: [occupancyId], references: [id], onDelete: Cascade)
-  inputMaterialId String
-  inputMaterial   InputMaterial @relation(fields: [inputMaterialId], references: [id])
-  quantity        Float
-  costSnapshot    Float // quantity * costPerUnit at time of application
-  appliedAt       DateTime      @default(now())
+// ---------- Inventory (generalizes InputMaterial/InputApplication) ----------
 
-  @@index([occupancyId])
-  @@index([inputMaterialId])
+model Item {
+  id               String   @id @default(cuid())
+  farmId           String
+  farm             Farm     @relation(fields: [farmId], references: [id])
+  itemType         ItemType
+  code             String
+  name             String
+  defaultUnit      String
+  supplierItemCode String?
+  trackByLot       Boolean  @default(true)
+  reorderPoint     Float?
+  active           Boolean  @default(true)
+
+  lots InventoryLot[]
+
+  @@unique([farmId, code])
+  @@index([farmId])
 }
 
-// ---------- Products (minimal Phase 1 stub; Price/Order arrive in Phase 2/3) ----------
+model InventoryLot {
+  id                 String    @id @default(cuid())
+  itemId             String
+  item               Item      @relation(fields: [itemId], references: [id])
+  lotCode            String
+  supplierLotNumber  String?
+  purchaseDate       DateTime?
+  expiryDate         DateTime?
+  quantityReceived   Float
+  quantityRemaining  Float
+  unit               String
+  unitCost           Float?
+  storageArea        String?
+  germinationTestPct Float?
+  status             LotStatus @default(AVAILABLE)
+
+  activityInputs ActivityInput[]
+
+  @@unique([itemId, lotCode])
+  @@index([itemId])
+}
+
+model ActivityInput {
+  id             String       @id @default(cuid())
+  activityId     String
+  activity       Activity     @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  inventoryLotId String
+  inventoryLot   InventoryLot @relation(fields: [inventoryLotId], references: [id])
+  quantity       Float
+  unit           String
+  costSnapshot   Float?
+
+  @@index([activityId])
+  @@index([inventoryLotId])
+}
+
+// ---------- Output (light — no ProductLot until a real store needs mixed products) ----------
+
+model Harvest {
+  id                 String       @id @default(cuid())
+  batchId            String
+  batch              ProductionBatch @relation(fields: [batchId], references: [id])
+  harvestLotCode     String
+  harvestDateTime    DateTime     @default(now())
+  areaId             String?
+  area               ProductionArea? @relation(fields: [areaId], references: [id])
+  grossQuantity      Float
+  marketableQuantity Float?
+  secondsQuantity    Float?
+  wasteQuantity      Float?
+  unit               String
+  qualityGrade       String?
+  harvestedByUserId  String?
+  publicStatus       PublicStatus @default(PRIVATE)
+
+  @@index([batchId])
+}
 
 model Product {
-  id            String      @id @default(cuid())
-  farmId        String
-  farm          Farm        @relation(fields: [farmId], references: [id])
-  name          String
-  productType   ProductType
-  unit          String // e.g. "bunch", "kg", "dozen"
-  publicVisible Boolean     @default(false)
-  description   String?
-  createdAt     DateTime    @default(now())
+  id               String        @id @default(cuid())
+  farmId           String
+  farm             Farm          @relation(fields: [farmId], references: [id])
+  varietyBreedId   String?
+  varietyBreed     VarietyBreed? @relation(fields: [varietyBreedId], references: [id])
+  sku              String
+  name             String
+  category         String?
+  saleUnit         String
+  standardPackSize String?
+  price            Float?
+  publicVisible    Boolean       @default(false)
+  primaryMediaUrl  String?
+  active           Boolean       @default(true)
 
-  harvestRecords HarvestRecord[]
-
-  @@unique([farmId, name])
+  @@unique([farmId, sku])
   @@index([farmId])
-}
-
-model HarvestRecord {
-  id          String    @id @default(cuid())
-  occupancyId String
-  occupancy   Occupancy @relation(fields: [occupancyId], references: [id], onDelete: Cascade)
-  productId   String
-  product     Product   @relation(fields: [productId], references: [id])
-  quantity    Float
-  harvestedAt DateTime  @default(now())
-
-  @@index([occupancyId])
-  @@index([productId])
 }

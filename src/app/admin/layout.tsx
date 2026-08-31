@@ -5,9 +5,10 @@ import { SignOutButton } from "@/components/SignOutButton";
 
 const navItems = [
   { href: "/admin", label: "Dashboard" },
-  { href: "/admin/growing-units", label: "Beds & Tractors" },
-  { href: "/admin/crops", label: "Crops" },
-  { href: "/admin/inputs", label: "Inputs" },
+  { href: "/admin/batches", label: "Batches" },
+  { href: "/admin/areas", label: "Areas" },
+  { href: "/admin/species", label: "Species" },
+  { href: "/admin/inventory", label: "Inventory" },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

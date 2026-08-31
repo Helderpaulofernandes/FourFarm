@@ -5,18 +5,18 @@ import { getCurrentFarmId } from "@/lib/farm-context";
 export default async function DashboardPage() {
   const farmId = await getCurrentFarmId();
 
-  const [cropCount, unitCount, activeOccupancyCount, inputCount] = await Promise.all([
-    db.crop.count({ where: { farmId } }),
-    db.growingUnit.count({ where: { farmId } }),
-    db.occupancy.count({ where: { growingUnit: { farmId }, status: "ACTIVE" } }),
-    db.inputMaterial.count({ where: { farmId } }),
+  const [varietyCount, areaCount, activeBatchCount, itemCount] = await Promise.all([
+    db.varietyBreed.count({ where: { species: { farmId } } }),
+    db.productionArea.count({ where: { farmId } }),
+    db.productionBatch.count({ where: { farmId, status: { notIn: ["COMPLETED", "ABANDONED"] } } }),
+    db.item.count({ where: { farmId } }),
   ]);
 
   const cards = [
-    { label: "Crops", value: cropCount, href: "/admin/crops" },
-    { label: "Beds & tractors", value: unitCount, href: "/admin/growing-units" },
-    { label: "Active plantings/batches", value: activeOccupancyCount, href: "/admin/growing-units" },
-    { label: "Input materials", value: inputCount, href: "/admin/inputs" },
+    { label: "Varieties", value: varietyCount, href: "/admin/species" },
+    { label: "Production areas", value: areaCount, href: "/admin/areas" },
+    { label: "Active batches", value: activeBatchCount, href: "/admin/batches" },
+    { label: "Inventory items", value: itemCount, href: "/admin/inventory" },
   ];
 
   return (
