@@ -69,7 +69,11 @@ export function BatchTimeline({
   return (
     <div className="overflow-x-auto">
       <div className="flex gap-3 pb-2" style={{ minWidth: plannedTasks.length * 140 }}>
-        {plannedTasks.map((activity, i) => (
+        {plannedTasks.map((activity, i) => {
+          const predecessor = i > 0 ? plannedTasks[i - 1] : null;
+          const locked = predecessor != null && predecessor.status !== "DONE";
+
+          return (
           <div key={activity.id} className="relative flex-1">
             {i > 0 && <div className="absolute left-[-12px] top-6 h-px w-3 bg-stone-300" />}
             <div className={`rounded-lg border p-3 ${activity.status === "DONE" ? "border-green-300 bg-green-50" : "border-stone-200 bg-white"}`}>
@@ -86,13 +90,20 @@ export function BatchTimeline({
                   Done {activity.actualEndDateTime && new Date(activity.actualEndDateTime).toLocaleDateString()}
                 </div>
               ) : (
-                <button
-                  onClick={() => handleComplete(activity)}
-                  disabled={busyId === activity.id}
-                  className="mt-2 h-8 w-full rounded-lg bg-green-700 text-xs font-medium text-white active:bg-green-800 disabled:opacity-60"
-                >
-                  Complete
-                </button>
+                <>
+                  <button
+                    onClick={() => handleComplete(activity)}
+                    disabled={busyId === activity.id || locked}
+                    className="mt-2 h-8 w-full rounded-lg bg-green-700 text-xs font-medium text-white active:bg-green-800 disabled:opacity-60"
+                  >
+                    Complete
+                  </button>
+                  {locked && (
+                    <div className="mt-1 text-center text-[11px] text-stone-400">
+                      Complete &quot;{predecessor!.internalNotes ?? predecessor!.activityType}&quot; first
+                    </div>
+                  )}
+                </>
               )}
 
               {movingActivityId === activity.id && (
@@ -115,7 +126,8 @@ export function BatchTimeline({
               )}
             </div>
           </div>
-        ))}
+          );
+        })}
         {plannedTasks.length === 0 && <p className="text-sm text-stone-500">No planned tasks — this batch has no workflow template.</p>}
       </div>
     </div>
