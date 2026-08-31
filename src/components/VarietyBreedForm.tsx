@@ -5,13 +5,22 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { varietyBreedSchema, type VarietyBreedInput } from "@/schemas/species";
-import { createVarietyBreed } from "@/server/actions/species";
+import { createVarietyBreed, updateVarietyBreed } from "@/server/actions/species";
 
 type SpeciesOption = { id: string; commonName: string };
+type ExistingVariety = VarietyBreedInput & { id: string };
 
-export function VarietyBreedForm({ species }: { species: SpeciesOption[] }) {
+export function VarietyBreedForm({
+  species,
+  existing,
+  onDone,
+}: {
+  species: SpeciesOption[];
+  existing?: ExistingVariety;
+  onDone?: () => void;
+}) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(!!existing);
 
   const {
     register,
@@ -20,13 +29,18 @@ export function VarietyBreedForm({ species }: { species: SpeciesOption[] }) {
     formState: { errors, isSubmitting },
   } = useForm<VarietyBreedInput>({
     resolver: zodResolver(varietyBreedSchema),
-    defaultValues: { speciesId: species[0]?.id },
+    defaultValues: existing ?? { speciesId: species[0]?.id },
   });
 
   async function onSubmit(data: VarietyBreedInput) {
-    await createVarietyBreed(data);
-    reset();
-    setOpen(false);
+    if (existing) {
+      await updateVarietyBreed(existing.id, data);
+    } else {
+      await createVarietyBreed(data);
+      reset();
+      setOpen(false);
+    }
+    onDone?.();
     router.refresh();
   }
 
@@ -79,9 +93,13 @@ export function VarietyBreedForm({ species }: { species: SpeciesOption[] }) {
           disabled={isSubmitting}
           className="h-12 flex-1 rounded-lg bg-green-700 text-base font-medium text-white active:bg-green-800 disabled:opacity-60"
         >
-          {isSubmitting ? "Saving..." : "Save variety"}
+          {isSubmitting ? "Saving..." : existing ? "Save changes" : "Save variety"}
         </button>
-        <button type="button" onClick={() => setOpen(false)} className="h-12 rounded-lg border border-stone-300 px-4 text-base font-medium text-stone-700">
+        <button
+          type="button"
+          onClick={() => (existing ? onDone?.() : setOpen(false))}
+          className="h-12 rounded-lg border border-stone-300 px-4 text-base font-medium text-stone-700"
+        >
           Cancel
         </button>
       </div>

@@ -6,11 +6,19 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
 import { productionAreaSchema, type ProductionAreaInput } from "@/schemas/production-area";
-import { createProductionArea } from "@/server/actions/production-areas";
+import { createProductionArea, updateProductionArea } from "@/server/actions/production-areas";
 
-export function ProductionAreaForm() {
+type ExistingArea = ProductionAreaInput & { id: string };
+
+export function ProductionAreaForm({
+  existing,
+  onDone,
+}: {
+  existing?: ExistingArea;
+  onDone?: () => void;
+}) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(!!existing);
 
   const {
     register,
@@ -19,13 +27,18 @@ export function ProductionAreaForm() {
     formState: { errors, isSubmitting },
   } = useForm<z.input<typeof productionAreaSchema>, unknown, ProductionAreaInput>({
     resolver: zodResolver(productionAreaSchema),
-    defaultValues: { areaType: "BED" },
+    defaultValues: existing ?? { areaType: "BED" },
   });
 
   async function onSubmit(data: ProductionAreaInput) {
-    await createProductionArea(data);
-    reset();
-    setOpen(false);
+    if (existing) {
+      await updateProductionArea(existing.id, data);
+    } else {
+      await createProductionArea(data);
+      reset();
+    }
+    setOpen(!!existing ? open : false);
+    onDone?.();
     router.refresh();
   }
 
@@ -79,9 +92,13 @@ export function ProductionAreaForm() {
           disabled={isSubmitting}
           className="h-12 flex-1 rounded-lg bg-green-700 text-base font-medium text-white active:bg-green-800 disabled:opacity-60"
         >
-          {isSubmitting ? "Saving..." : "Save area"}
+          {isSubmitting ? "Saving..." : existing ? "Save changes" : "Save area"}
         </button>
-        <button type="button" onClick={() => setOpen(false)} className="h-12 rounded-lg border border-stone-300 px-4 text-base font-medium text-stone-700">
+        <button
+          type="button"
+          onClick={() => (existing ? onDone?.() : setOpen(false))}
+          className="h-12 rounded-lg border border-stone-300 px-4 text-base font-medium text-stone-700"
+        >
           Cancel
         </button>
       </div>

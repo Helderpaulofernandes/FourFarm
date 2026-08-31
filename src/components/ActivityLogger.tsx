@@ -6,10 +6,13 @@ import { useOfflineQueue } from "@/lib/offline-queue";
 import { logActivity } from "@/server/actions/production-batches";
 import type { LogActivityInput } from "@/schemas/production-batch";
 
+// Deliberately excludes routine daily care (watering, etc.) — logging something
+// that happens every day the same way is noise, not signal. Only notable,
+// variable events belong here.
 const quickActivityTypes: { type: LogActivityInput["activityType"]; label: string }[] = [
-  { type: "WATER", label: "Watered" },
   { type: "PEST_TREATMENT", label: "Pest treatment" },
   { type: "WEED", label: "Weeding" },
+  { type: "PRUNE", label: "Pruning" },
   { type: "OBSERVATION", label: "Inspection" },
   { type: "OTHER", label: "Other" },
 ];

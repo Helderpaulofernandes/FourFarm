@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { listProductionAreas } from "@/server/actions/production-areas";
 import { ProductionAreaForm } from "@/components/ProductionAreaForm";
+import { AreaRow } from "@/components/AreaRow";
 
 export default async function AreasPage() {
   const areas = await listProductionAreas();
@@ -45,21 +45,7 @@ export default async function AreasPage() {
         <h2 className="mb-2 text-sm font-medium text-stone-500">All areas</h2>
         <div className="space-y-2">
           {areas.map((area) => (
-            <div key={area.id} className="rounded-xl border border-stone-200 bg-white p-4">
-              <div className="font-medium text-stone-900">{area.name}</div>
-              <div className="text-sm text-stone-500">
-                {area.areaType.toLowerCase().replace("_", " ")} · {area.code}
-                {area.batchLocations[0] && (
-                  <>
-                    {" "}
-                    ·{" "}
-                    <Link href={`/admin/batches/${area.batchLocations[0].batch.id}`} className="text-green-700 underline">
-                      {area.batchLocations[0].batch.varietyBreed.name} ({area.batchLocations[0].batch.batchCode})
-                    </Link>
-                  </>
-                )}
-              </div>
-            </div>
+            <AreaRow key={area.id} area={area} />
           ))}
           {areas.length === 0 && <p className="text-sm text-stone-500">No production areas yet.</p>}
         </div>

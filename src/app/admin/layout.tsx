@@ -5,6 +5,7 @@ import { SignOutButton } from "@/components/SignOutButton";
 
 const navItems = [
   { href: "/admin", label: "Dashboard" },
+  { href: "/admin/planner", label: "Planner" },
   { href: "/admin/batches", label: "Batches" },
   { href: "/admin/areas", label: "Areas" },
   { href: "/admin/species", label: "Species" },
@@ -19,11 +20,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <div className="min-h-screen bg-stone-50">
         {session && (
           <header className="sticky top-0 z-10 border-b border-stone-200 bg-white">
-            <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+            <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
               <span className="font-semibold text-stone-900">Four Farm</span>
               <SignOutButton />
             </div>
-            <nav className="mx-auto flex max-w-5xl gap-1 overflow-x-auto px-2 pb-2">
+            <nav className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-2 pb-2">
               {navItems.map((item) => (
                 <Link
                   key={item.href}
@@ -36,7 +37,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             </nav>
           </header>
         )}
-        <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+        <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
       </div>
     </Providers>
   );

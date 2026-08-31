@@ -46,9 +46,23 @@ export async function createSpecies(input: SpeciesInput) {
   return species;
 }
 
+export async function updateSpecies(id: string, input: SpeciesInput) {
+  const data = speciesSchema.parse(input);
+  const species = await db.species.update({ where: { id }, data });
+  revalidatePath("/admin/species");
+  return species;
+}
+
 export async function createVarietyBreed(input: VarietyBreedInput) {
   const data = varietyBreedSchema.parse(input);
   const variety = await db.varietyBreed.create({ data });
+  revalidatePath("/admin/species");
+  return variety;
+}
+
+export async function updateVarietyBreed(id: string, input: VarietyBreedInput) {
+  const data = varietyBreedSchema.parse(input);
+  const variety = await db.varietyBreed.update({ where: { id }, data });
   revalidatePath("/admin/species");
   return variety;
 }
@@ -75,6 +89,32 @@ export async function createCropProfile(input: CropProfileInput) {
           targetTransplantAgeDays: data.targetNurseryDays,
           daysToFirstHarvest: data.targetHarvestStartDays,
           harvestWindowDays: data.targetHarvestWindowDays,
+        },
+      },
+    },
+  });
+
+  revalidatePath("/admin/species");
+  return profile;
+}
+
+export async function updateCropProfile(profileId: string, input: CropProfileInput) {
+  const data = cropProfileSchema.parse(input);
+
+  const profile = await db.productionProfile.update({
+    where: { id: profileId },
+    data: {
+      name: data.name,
+      nurseryRequired: data.nurseryRequired,
+      targetNurseryDays: data.targetNurseryDays,
+      targetHarvestStartDays: data.targetHarvestStartDays,
+      targetHarvestWindowDays: data.targetHarvestWindowDays,
+      cropProfile: {
+        update: {
+          plantSpacingMm: data.plantSpacingMm,
+          rowSpacingMm: data.rowSpacingMm,
+          daysToGerminationTypical: data.daysToGerminationTypical,
+          hardeningDays: data.hardeningDays,
         },
       },
     },

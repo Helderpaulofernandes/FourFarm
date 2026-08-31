@@ -39,6 +39,15 @@ export async function createItem(input: ItemInput) {
   return item;
 }
 
+export async function updateItem(id: string, input: ItemInput) {
+  const data = itemSchema.parse(input);
+  const farmId = await getCurrentFarmId();
+
+  const item = await db.item.update({ where: { id, farmId }, data });
+  revalidatePath("/admin/inventory");
+  return item;
+}
+
 export async function createInventoryLot(input: InventoryLotInput) {
   const data = inventoryLotSchema.parse(input);
 

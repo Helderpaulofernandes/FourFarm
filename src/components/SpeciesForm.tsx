@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { speciesSchema, type SpeciesInput } from "@/schemas/species";
-import { createSpecies } from "@/server/actions/species";
+import { createSpecies, updateSpecies } from "@/server/actions/species";
 
-export function SpeciesForm() {
+type ExistingSpecies = SpeciesInput & { id: string };
+
+export function SpeciesForm({ existing, onDone }: { existing?: ExistingSpecies; onDone?: () => void }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(!!existing);
 
   const {
     register,
@@ -18,13 +20,18 @@ export function SpeciesForm() {
     formState: { errors, isSubmitting },
   } = useForm<SpeciesInput>({
     resolver: zodResolver(speciesSchema),
-    defaultValues: { kingdom: "PLANT" },
+    defaultValues: existing ?? { kingdom: "PLANT" },
   });
 
   async function onSubmit(data: SpeciesInput) {
-    await createSpecies(data);
-    reset();
-    setOpen(false);
+    if (existing) {
+      await updateSpecies(existing.id, data);
+    } else {
+      await createSpecies(data);
+      reset();
+      setOpen(false);
+    }
+    onDone?.();
     router.refresh();
   }
 
@@ -70,9 +77,13 @@ export function SpeciesForm() {
           disabled={isSubmitting}
           className="h-12 flex-1 rounded-lg bg-green-700 text-base font-medium text-white active:bg-green-800 disabled:opacity-60"
         >
-          {isSubmitting ? "Saving..." : "Save species"}
+          {isSubmitting ? "Saving..." : existing ? "Save changes" : "Save species"}
         </button>
-        <button type="button" onClick={() => setOpen(false)} className="h-12 rounded-lg border border-stone-300 px-4 text-base font-medium text-stone-700">
+        <button
+          type="button"
+          onClick={() => (existing ? onDone?.() : setOpen(false))}
+          className="h-12 rounded-lg border border-stone-300 px-4 text-base font-medium text-stone-700"
+        >
           Cancel
         </button>
       </div>

@@ -40,3 +40,12 @@ export async function createProductionArea(input: ProductionAreaInput) {
   revalidatePath("/admin/areas");
   return area;
 }
+
+export async function updateProductionArea(id: string, input: ProductionAreaInput) {
+  const data = productionAreaSchema.parse(input);
+  const farmId = await getCurrentFarmId();
+
+  const area = await db.productionArea.update({ where: { id, farmId }, data });
+  revalidatePath("/admin/areas");
+  return area;
+}

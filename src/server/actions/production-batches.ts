@@ -113,6 +113,15 @@ export async function createBatch(input: CreateBatchInput) {
   return batch;
 }
 
+export async function updateActivityPlannedDate(activityId: string, plannedDateTime: Date) {
+  const activity = await db.activity.update({
+    where: { id: activityId },
+    data: { plannedDateTime },
+  });
+  if (activity.batchId) revalidatePath(`/admin/batches/${activity.batchId}`);
+  return activity;
+}
+
 export async function completeActivity(activityId: string) {
   const activity = await db.activity.update({
     where: { id: activityId },
