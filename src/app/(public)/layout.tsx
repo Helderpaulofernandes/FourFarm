@@ -8,12 +8,17 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           <Link href="/" className="font-semibold text-stone-900">
             Four Farm
           </Link>
-          <Link
-            href="/admin"
-            className="rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 active:bg-stone-100"
-          >
-            Farm Admin
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/store" className="rounded-full px-4 py-2 text-sm font-medium text-stone-700 active:bg-stone-100">
+              Store
+            </Link>
+            <Link
+              href="/admin"
+              className="rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 active:bg-stone-100"
+            >
+              Farm Admin
+            </Link>
+          </div>
         </div>
       </header>
       {children}

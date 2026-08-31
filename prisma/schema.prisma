@@ -402,6 +402,7 @@ model ProductionProfile {
   seasonRules       SeasonRule[]
   workflowTemplates WorkflowTemplate[]
   batches           ProductionBatch[]
+  products          Product[]
 
   @@unique([varietyBreedId, methodId, version])
   @@index([varietyBreedId])
@@ -738,6 +739,8 @@ model Product {
   farm             Farm          @relation(fields: [farmId], references: [id])
   varietyBreedId   String?
   varietyBreed     VarietyBreed? @relation(fields: [varietyBreedId], references: [id])
+  profileId        String?
+  profile          ProductionProfile? @relation(fields: [profileId], references: [id])
   sku              String
   name             String
   category         String?
