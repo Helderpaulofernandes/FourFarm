@@ -56,3 +56,23 @@ export const poultryProfileSchema = z.object({
   targetProcessingAgeDays: optionalPositiveInt(),
 });
 export type PoultryProfileInput = z.infer<typeof poultryProfileSchema>;
+
+export const canopyStrata = ["EMERGENT", "HIGH", "MEDIUM", "LOW", "SHRUB", "GROUND_COVER", "CLIMBER"] as const;
+export const successionalStages = ["PLACENTA", "SECONDARY", "CLIMAX"] as const;
+
+export const treeProfileSchema = z.object({
+  varietyBreedId: z.string().min(1, "Required"),
+  methodId: z.string().min(1, "Required"),
+  name: z.string().min(1, "Required"),
+  canopyStratum: z.enum(canopyStrata),
+  successionalStage: z.enum(successionalStages),
+  matureHeightM: optionalPositiveNumber(),
+  matureSpreadM: optionalPositiveNumber(),
+  withinRowSpacingM: optionalPositiveNumber(),
+  betweenRowSpacingM: optionalPositiveNumber(),
+  yearsToFirstYield: optionalPositiveNumber(),
+  nitrogenFixer: z.boolean().default(false),
+  chopAndDropCandidate: z.boolean().default(false),
+  pruningFrequencyMonths: optionalPositiveInt(),
+});
+export type TreeProfileInput = z.infer<typeof treeProfileSchema>;

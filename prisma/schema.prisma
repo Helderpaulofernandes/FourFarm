@@ -70,6 +70,22 @@ enum FlockType {
   BROILER
 }
 
+enum CanopyStratum {
+  EMERGENT
+  HIGH
+  MEDIUM
+  LOW
+  SHRUB
+  GROUND_COVER
+  CLIMBER
+}
+
+enum SuccessionalStage {
+  PLACENTA
+  SECONDARY
+  CLIMAX
+}
+
 enum MaturityBasis {
   FROM_SOWING
   FROM_TRANSPLANT
@@ -399,6 +415,7 @@ model ProductionProfile {
 
   cropProfile       CropProfile?
   poultryProfile    PoultryProfile?
+  treeProfile       TreeProfile?
   seasonRules       SeasonRule[]
   workflowTemplates WorkflowTemplate[]
   batches           ProductionBatch[]
@@ -466,6 +483,25 @@ model PoultryProfile {
   targetLayingStartDays             Int?
   targetProcessingAgeDays           Int?
   expectedMortalityPct              Float?
+}
+
+// Syntropic/agroforestry-specific extension of ProductionProfile — same attach
+// pattern as CropProfile/PoultryProfile.
+model TreeProfile {
+  id        String            @id @default(cuid())
+  profileId String            @unique
+  profile   ProductionProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  canopyStratum           CanopyStratum
+  successionalStage       SuccessionalStage
+  matureHeightM           Float?
+  matureSpreadM           Float?
+  withinRowSpacingM       Float?
+  betweenRowSpacingM      Float?
+  yearsToFirstYield       Float?
+  nitrogenFixer           Boolean           @default(false)
+  chopAndDropCandidate    Boolean           @default(false)
+  pruningFrequencyMonths  Int?
 }
 
 // Season windows as rows, not Jan-Dec columns — supports multiple climate zones

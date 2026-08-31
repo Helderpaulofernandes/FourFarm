@@ -479,6 +479,116 @@ async function main() {
     });
   }
 
+  // ---------- Syntropic forest: species / method / profile / workflow ----------
+
+  const bananaSpecies = await db.species.upsert({
+    where: { farmId_commonName: { farmId: farm.id, commonName: "Banana" } },
+    update: {},
+    create: {
+      farmId: farm.id,
+      kingdom: "PLANT",
+      commonName: "Banana",
+      scientificName: "Musa acuminata",
+      family: "Musaceae",
+      lifeCycle: "PERENNIAL",
+      primaryRole: "Food / biomass",
+    },
+  });
+
+  const ladyFinger = await db.varietyBreed.upsert({
+    where: { speciesId_name: { speciesId: bananaSpecies.id, name: "Lady Finger" } },
+    update: {},
+    create: {
+      speciesId: bananaSpecies.id,
+      name: "Lady Finger",
+      recordType: "CULTIVAR",
+      typicalColour: "Yellow",
+      typicalMatureSize: "3-4m",
+      publicDescription: "A sweet, thin-skinned banana grown as a fast-cycling secondary-stratum species in our forest rows.",
+    },
+  });
+
+  const syntropicMethod = await db.productionMethod.upsert({
+    where: { farmId_name: { farmId: farm.id, name: "Syntropic agroforestry" } },
+    update: {},
+    create: {
+      farmId: farm.id,
+      name: "Syntropic agroforestry",
+      productionSystem: "FOREST",
+      internalDescription: "Successional, stratified forest rows — direct-planted, chop-and-drop pruned, no bare soil.",
+      publicDescription: "Grown in multi-species forest rows that mimic natural succession, building soil instead of depleting it.",
+    },
+  });
+
+  const bananaProfile = await db.productionProfile.upsert({
+    where: { varietyBreedId_methodId_version: { varietyBreedId: ladyFinger.id, methodId: syntropicMethod.id, version: 1 } },
+    update: {},
+    create: {
+      varietyBreedId: ladyFinger.id,
+      methodId: syntropicMethod.id,
+      name: "Lady Finger forest row profile",
+      version: 1,
+      nurseryRequired: false,
+      targetHarvestStartDays: 300,
+      expectedYieldValue: 15,
+      expectedYieldUnit: "kg/plant/yr",
+      sourceType: "OWN_TRIAL",
+      confidenceLevel: "ESTIMATED",
+    },
+  });
+
+  await db.treeProfile.upsert({
+    where: { profileId: bananaProfile.id },
+    update: {},
+    create: {
+      profileId: bananaProfile.id,
+      canopyStratum: "LOW",
+      successionalStage: "SECONDARY",
+      matureHeightM: 3.5,
+      matureSpreadM: 2.5,
+      withinRowSpacingM: 2,
+      betweenRowSpacingM: 4,
+      yearsToFirstYield: 1,
+      nitrogenFixer: false,
+      chopAndDropCandidate: true,
+      pruningFrequencyMonths: 6,
+    },
+  });
+
+  // Day 0 plant -> Day 30 mulch establishment -> Day 180 first chop-and-drop
+  // prune -> Day 300 harvest start, the same offset-day mechanism proven on
+  // the tomato/lettuce/broiler workflows, now stretched across a full year.
+  const bananaWorkflow = await db.workflowTemplate.upsert({
+    where: { id: "seed-workflow-banana" },
+    update: {},
+    create: {
+      id: "seed-workflow-banana",
+      profileId: bananaProfile.id,
+      name: "Lady Finger forest row workflow",
+      version: 1,
+      anchorType: "SEED_DATE",
+      schedulingDirection: "FORWARD",
+    },
+  });
+  const bananaTasks: {
+    taskType: "SOW" | "MULCH" | "PRUNE" | "HARVEST";
+    taskName: string;
+    sequence: number;
+    offsetFromAnchorDays: number;
+  }[] = [
+    { taskType: "SOW", taskName: "Plant", sequence: 1, offsetFromAnchorDays: 0 },
+    { taskType: "MULCH", taskName: "Mulch Establishment", sequence: 2, offsetFromAnchorDays: 30 },
+    { taskType: "PRUNE", taskName: "First Chop-and-Drop Prune", sequence: 3, offsetFromAnchorDays: 180 },
+    { taskType: "HARVEST", taskName: "Harvest Start", sequence: 4, offsetFromAnchorDays: 300 },
+  ];
+  for (const task of bananaTasks) {
+    await db.workflowTaskTemplate.upsert({
+      where: { id: `seed-task-banana-${task.sequence}` },
+      update: {},
+      create: { id: `seed-task-banana-${task.sequence}`, workflowTemplateId: bananaWorkflow.id, ...task },
+    });
+  }
+
   // ---------- Production areas: nursery benches + beds ----------
 
   for (let n = 1; n <= 2; n++) {
@@ -558,6 +668,20 @@ async function main() {
       },
     });
   }
+
+  await db.productionArea.upsert({
+    where: { farmId_code: { farmId: farm.id, code: "FOREST-ROW-1" } },
+    update: {},
+    create: {
+      farmId: farm.id,
+      areaType: "FOREST_ROW",
+      code: "FOREST-ROW-1",
+      name: "Forest Row 1",
+      lengthM: 30,
+      widthM: 4,
+      areaM2: 120,
+    },
+  });
 
   // ---------- Inventory ----------
 

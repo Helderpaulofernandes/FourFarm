@@ -32,7 +32,7 @@ export async function getBatch(id: string) {
     where: { id, farmId },
     include: {
       varietyBreed: { include: { species: true } },
-      profile: { include: { cropProfile: true, poultryProfile: true } },
+      profile: { include: { cropProfile: true, poultryProfile: true, treeProfile: true } },
       workflowTemplate: true,
       locations: { orderBy: { startDateTime: "asc" }, include: { area: true } },
       activities: { orderBy: { plannedDateTime: "asc" }, include: { inputs: { include: { inventoryLot: { include: { item: true } } } } } },

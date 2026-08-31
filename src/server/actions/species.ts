@@ -8,10 +8,12 @@ import {
   varietyBreedSchema,
   cropProfileSchema,
   poultryProfileSchema,
+  treeProfileSchema,
   type SpeciesInput,
   type VarietyBreedInput,
   type CropProfileInput,
   type PoultryProfileInput,
+  type TreeProfileInput,
 } from "@/schemas/species";
 
 export async function listSpecies() {
@@ -21,7 +23,7 @@ export async function listSpecies() {
     include: {
       varieties: {
         include: {
-          profiles: { include: { cropProfile: true, poultryProfile: true, method: true, workflowTemplates: true } },
+          profiles: { include: { cropProfile: true, poultryProfile: true, treeProfile: true, method: true, workflowTemplates: true } },
         },
       },
     },
@@ -156,6 +158,65 @@ export async function updatePoultryProfile(profileId: string, input: PoultryProf
           expectedEggsPerHenWeek: data.expectedEggsPerHenWeek,
           expectedLiveWeightKg: data.expectedLiveWeightKg,
           targetProcessingAgeDays: data.targetProcessingAgeDays,
+        },
+      },
+    },
+  });
+
+  revalidatePath("/admin/species");
+  return profile;
+}
+
+export async function createTreeProfile(input: TreeProfileInput) {
+  const data = treeProfileSchema.parse(input);
+
+  const profile = await db.productionProfile.create({
+    data: {
+      varietyBreedId: data.varietyBreedId,
+      methodId: data.methodId,
+      name: data.name,
+      nurseryRequired: false,
+      expectedYieldUnit: "kg",
+      treeProfile: {
+        create: {
+          canopyStratum: data.canopyStratum,
+          successionalStage: data.successionalStage,
+          matureHeightM: data.matureHeightM,
+          matureSpreadM: data.matureSpreadM,
+          withinRowSpacingM: data.withinRowSpacingM,
+          betweenRowSpacingM: data.betweenRowSpacingM,
+          yearsToFirstYield: data.yearsToFirstYield,
+          nitrogenFixer: data.nitrogenFixer,
+          chopAndDropCandidate: data.chopAndDropCandidate,
+          pruningFrequencyMonths: data.pruningFrequencyMonths,
+        },
+      },
+    },
+  });
+
+  revalidatePath("/admin/species");
+  return profile;
+}
+
+export async function updateTreeProfile(profileId: string, input: TreeProfileInput) {
+  const data = treeProfileSchema.parse(input);
+
+  const profile = await db.productionProfile.update({
+    where: { id: profileId },
+    data: {
+      name: data.name,
+      treeProfile: {
+        update: {
+          canopyStratum: data.canopyStratum,
+          successionalStage: data.successionalStage,
+          matureHeightM: data.matureHeightM,
+          matureSpreadM: data.matureSpreadM,
+          withinRowSpacingM: data.withinRowSpacingM,
+          betweenRowSpacingM: data.betweenRowSpacingM,
+          yearsToFirstYield: data.yearsToFirstYield,
+          nitrogenFixer: data.nitrogenFixer,
+          chopAndDropCandidate: data.chopAndDropCandidate,
+          pruningFrequencyMonths: data.pruningFrequencyMonths,
         },
       },
     },

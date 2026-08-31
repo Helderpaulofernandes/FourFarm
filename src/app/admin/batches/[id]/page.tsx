@@ -8,15 +8,15 @@ import { HarvestForm } from "@/components/HarvestForm";
 import { CompleteBatchButton } from "@/components/CompleteBatchButton";
 import { ActivityLogPanel } from "@/components/ActivityLogPanel";
 import { FCRCard } from "@/components/FCRCard";
-
-const POULTRY_AREA_TYPES = new Set(["COOP", "TRACTOR", "PADDOCK"]);
+import { AREA_TYPES_BY_SYSTEM } from "@/lib/production-system";
 
 export default async function BatchDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const [batch, areas, lots] = await Promise.all([getBatch(id), listProductionAreas(), listAvailableLots()]);
 
   const isPoultry = batch.enterpriseType === "LAYERS" || batch.enterpriseType === "BROILERS";
-  const destinationAreas = areas.filter((a) => (isPoultry ? POULTRY_AREA_TYPES.has(a.areaType) : a.areaType === "BED"));
+  const destinationAreaTypes = AREA_TYPES_BY_SYSTEM[batch.enterpriseType] ?? ["BED"];
+  const destinationAreas = areas.filter((a) => destinationAreaTypes.includes(a.areaType));
   const currentLocation = batch.locations.find((l) => !l.endDateTime);
 
   return (

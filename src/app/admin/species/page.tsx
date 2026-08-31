@@ -3,6 +3,7 @@ import { SpeciesForm } from "@/components/SpeciesForm";
 import { VarietyBreedForm } from "@/components/VarietyBreedForm";
 import { CropProfileForm } from "@/components/CropProfileForm";
 import { PoultryProfileForm } from "@/components/PoultryProfileForm";
+import { TreeProfileForm } from "@/components/TreeProfileForm";
 import { SpeciesRow } from "@/components/SpeciesRow";
 
 export default async function SpeciesPage() {
@@ -23,6 +24,7 @@ export default async function SpeciesPage() {
       </div>
       <CropProfileForm varieties={varieties} methods={methods} />
       <PoultryProfileForm varieties={varieties} methods={methods} />
+      <TreeProfileForm varieties={varieties} methods={methods} />
 
       <div className="space-y-4">
         {species.map((sp) => (

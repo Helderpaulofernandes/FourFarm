@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBatch } from "@/server/actions/production-batches";
+import { AREA_TYPES_BY_SYSTEM } from "@/lib/production-system";
 
 type Profile = {
   id: string;
@@ -13,12 +14,6 @@ type Profile = {
 };
 type Variety = { id: string; name: string; species: { commonName: string }; profiles: Profile[] };
 type Area = { id: string; name: string; areaType: string };
-
-const AREA_TYPES_BY_SYSTEM: Record<string, string[]> = {
-  LAYERS: ["COOP", "TRACTOR", "PADDOCK"],
-  BROILERS: ["COOP", "TRACTOR", "PADDOCK"],
-  FOREST: ["FOREST_ROW"],
-};
 
 function defaultQuantityUnit(productionSystem?: string) {
   return productionSystem === "LAYERS" || productionSystem === "BROILERS" ? "birds" : "plants";

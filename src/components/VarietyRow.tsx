@@ -21,6 +21,13 @@ type Profile = {
     expectedEggsPerHenWeek: number | null;
     expectedLiveWeightKg: number | null;
   } | null;
+  treeProfile: {
+    canopyStratum: string;
+    successionalStage: string;
+    withinRowSpacingM: number | null;
+    betweenRowSpacingM: number | null;
+    yearsToFirstYield: number | null;
+  } | null;
   workflowTemplates: { id: string }[];
 };
 type Variety = {
@@ -77,6 +84,16 @@ export function VarietyRow({ variety, speciesOptions }: { variety: Variety; spec
               {p.poultryProfile.growOutDays ? ` · ${p.poultryProfile.growOutDays}d grow-out` : ""}
               {p.poultryProfile.expectedEggsPerHenWeek ? ` · ${p.poultryProfile.expectedEggsPerHenWeek} eggs/hen/wk` : ""}
               {p.poultryProfile.expectedLiveWeightKg ? ` · ${p.poultryProfile.expectedLiveWeightKg}kg target` : ""}
+            </span>
+          )}
+          {p.treeProfile && (
+            <span>
+              {" "}
+              · {p.treeProfile.canopyStratum.toLowerCase().replace("_", " ")} canopy · {p.treeProfile.successionalStage.toLowerCase()}
+              {p.treeProfile.withinRowSpacingM && p.treeProfile.betweenRowSpacingM
+                ? ` · ${p.treeProfile.withinRowSpacingM}×${p.treeProfile.betweenRowSpacingM}m spacing`
+                : ""}
+              {p.treeProfile.yearsToFirstYield ? ` · ${p.treeProfile.yearsToFirstYield}yr to first yield` : ""}
             </span>
           )}
           {" · "}
