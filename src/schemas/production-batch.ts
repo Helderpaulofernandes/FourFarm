@@ -46,6 +46,7 @@ export const logActivitySchema = z.object({
   batchId: z.string().min(1),
   activityType: z.enum(activityTypes),
   notes: z.string().optional(),
+  quantity: z.coerce.number().positive().optional(),
 });
 export type LogActivityInput = z.infer<typeof logActivitySchema>;
 

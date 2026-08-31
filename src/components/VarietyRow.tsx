@@ -12,6 +12,14 @@ type Profile = {
   targetHarvestStartDays: number | null;
   method: { name: string };
   cropProfile: { plantSpacingMm: number | null; rowSpacingMm: number | null } | null;
+  poultryProfile: {
+    flockType: string;
+    breedName: string | null;
+    broodingDays: number | null;
+    growOutDays: number | null;
+    expectedEggsPerHenWeek: number | null;
+    expectedLiveWeightKg: number | null;
+  } | null;
   workflowTemplates: { id: string }[];
 };
 type Variety = {
@@ -51,13 +59,23 @@ export function VarietyRow({ variety, speciesOptions }: { variety: Variety; spec
       </div>
       {variety.profiles.map((p) => (
         <div key={p.id} className="mt-2 text-sm text-stone-600">
-          <span className="font-medium">{p.name}</span> ({p.method.name}) — v{p.version} ·{" "}
-          {p.nurseryRequired ? `${p.targetNurseryDays}d nursery, ` : ""}
-          harvest ~{p.targetHarvestStartDays}d
+          <span className="font-medium">{p.name}</span> ({p.method.name}) — v{p.version}
           {p.cropProfile && (
             <span>
               {" "}
-              · {p.cropProfile.plantSpacingMm}×{p.cropProfile.rowSpacingMm}mm spacing
+              · {p.nurseryRequired ? `${p.targetNurseryDays}d nursery, ` : ""}
+              harvest ~{p.targetHarvestStartDays}d · {p.cropProfile.plantSpacingMm}×{p.cropProfile.rowSpacingMm}mm spacing
+            </span>
+          )}
+          {p.poultryProfile && (
+            <span>
+              {" "}
+              · {p.poultryProfile.flockType.toLowerCase()}
+              {p.poultryProfile.breedName ? ` (${p.poultryProfile.breedName})` : ""}
+              {p.poultryProfile.broodingDays ? ` · ${p.poultryProfile.broodingDays}d brooding` : ""}
+              {p.poultryProfile.growOutDays ? ` · ${p.poultryProfile.growOutDays}d grow-out` : ""}
+              {p.poultryProfile.expectedEggsPerHenWeek ? ` · ${p.poultryProfile.expectedEggsPerHenWeek} eggs/hen/wk` : ""}
+              {p.poultryProfile.expectedLiveWeightKg ? ` · ${p.poultryProfile.expectedLiveWeightKg}kg target` : ""}
             </span>
           )}
           {p.workflowTemplates.length > 0 && <span> · {p.workflowTemplates.length} workflow template(s)</span>}

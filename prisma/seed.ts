@@ -322,6 +322,163 @@ async function main() {
     });
   }
 
+  // ---------- Poultry: species / breeds / methods / profiles / workflow ----------
+
+  const chickenSpecies = await db.species.upsert({
+    where: { farmId_commonName: { farmId: farm.id, commonName: "Chicken" } },
+    update: {},
+    create: {
+      farmId: farm.id,
+      kingdom: "ANIMAL",
+      commonName: "Chicken",
+      scientificName: "Gallus gallus domesticus",
+      lifeCycle: "PERENNIAL",
+      primaryRole: "Egg / meat",
+    },
+  });
+
+  const isaBrown = await db.varietyBreed.upsert({
+    where: { speciesId_name: { speciesId: chickenSpecies.id, name: "ISA Brown" } },
+    update: {},
+    create: {
+      speciesId: chickenSpecies.id,
+      name: "ISA Brown",
+      recordType: "BREED",
+      typicalColour: "Brown",
+      publicDescription: "A reliable brown-egg layer, pasture-raised in rotating paddocks.",
+    },
+  });
+
+  const cobb500 = await db.varietyBreed.upsert({
+    where: { speciesId_name: { speciesId: chickenSpecies.id, name: "Cobb 500" } },
+    update: {},
+    create: {
+      speciesId: chickenSpecies.id,
+      name: "Cobb 500",
+      recordType: "BREED",
+      typicalColour: "White",
+      publicDescription: "A fast-growing broiler breed, moved through pasture in mobile tractors.",
+    },
+  });
+
+  const pasturedLayerMethod = await db.productionMethod.upsert({
+    where: { farmId_name: { farmId: farm.id, name: "Pastured layers" } },
+    update: {},
+    create: {
+      farmId: farm.id,
+      name: "Pastured layers",
+      productionSystem: "LAYERS",
+      internalDescription: "Mobile coop rotated across paddocks, supplemental feed.",
+      publicDescription: "Our hens are rotated across fresh pasture, never kept in one place for long.",
+    },
+  });
+
+  const pasturedBroilerMethod = await db.productionMethod.upsert({
+    where: { farmId_name: { farmId: farm.id, name: "Pastured broilers" } },
+    update: {},
+    create: {
+      farmId: farm.id,
+      name: "Pastured broilers",
+      productionSystem: "BROILERS",
+      internalDescription: "Chicken tractors moved daily across pasture.",
+      publicDescription: "Broilers grow out on pasture in daily-moved tractors.",
+    },
+  });
+
+  const layerProfile = await db.productionProfile.upsert({
+    where: { varietyBreedId_methodId_version: { varietyBreedId: isaBrown.id, methodId: pasturedLayerMethod.id, version: 1 } },
+    update: {},
+    create: {
+      varietyBreedId: isaBrown.id,
+      methodId: pasturedLayerMethod.id,
+      name: "ISA Brown pastured layer profile",
+      version: 1,
+      expectedYieldValue: 6,
+      expectedYieldUnit: "eggs/hen/week",
+      sourceType: "OWN_TRIAL",
+      confidenceLevel: "ESTIMATED",
+    },
+  });
+  await db.poultryProfile.upsert({
+    where: { profileId: layerProfile.id },
+    update: {},
+    create: {
+      profileId: layerProfile.id,
+      flockType: "LAYER",
+      breedName: "ISA Brown",
+      broodingDays: 42,
+      targetStockingDensity: 3,
+      targetStockingDensityUnit: "birds/m2",
+      expectedFeedConsumptionPerBirdDay: 0.12,
+      expectedEggsPerHenWeek: 6,
+      targetLayingStartDays: 140,
+    },
+  });
+
+  const broilerProfile = await db.productionProfile.upsert({
+    where: { varietyBreedId_methodId_version: { varietyBreedId: cobb500.id, methodId: pasturedBroilerMethod.id, version: 1 } },
+    update: {},
+    create: {
+      varietyBreedId: cobb500.id,
+      methodId: pasturedBroilerMethod.id,
+      name: "Cobb 500 pastured broiler profile",
+      version: 1,
+      expectedYieldValue: 2.5,
+      expectedYieldUnit: "kg live weight",
+      sourceType: "OWN_TRIAL",
+      confidenceLevel: "ESTIMATED",
+    },
+  });
+  await db.poultryProfile.upsert({
+    where: { profileId: broilerProfile.id },
+    update: {},
+    create: {
+      profileId: broilerProfile.id,
+      flockType: "BROILER",
+      breedName: "Cobb 500",
+      broodingDays: 21,
+      growOutDays: 21,
+      targetStockingDensity: 10,
+      targetStockingDensityUnit: "birds/m2",
+      expectedFeedConsumptionPerBirdDay: 0.15,
+      expectedLiveWeightKg: 2.5,
+      targetProcessingAgeDays: 42,
+      expectedMortalityPct: 5,
+    },
+  });
+
+  // Day 0 chicks arrive -> Day 21 move to grow-out tractor -> Day 42 process,
+  // the same offset-day mechanism proven on the tomato/lettuce workflows.
+  const broilerWorkflow = await db.workflowTemplate.upsert({
+    where: { id: "seed-workflow-broiler" },
+    update: {},
+    create: {
+      id: "seed-workflow-broiler",
+      profileId: broilerProfile.id,
+      name: "Cobb 500 broiler workflow",
+      version: 1,
+      anchorType: "SEED_DATE",
+      schedulingDirection: "FORWARD",
+    },
+  });
+  const broilerTasks: {
+    taskType: "OTHER" | "MOVE" | "HARVEST";
+    taskName: string;
+    sequence: number;
+    offsetFromAnchorDays: number;
+  }[] = [
+    { taskType: "OTHER", taskName: "Chicks Arrive", sequence: 1, offsetFromAnchorDays: 0 },
+    { taskType: "MOVE", taskName: "Move to Grow-Out Tractor", sequence: 2, offsetFromAnchorDays: 21 },
+    { taskType: "HARVEST", taskName: "Process", sequence: 3, offsetFromAnchorDays: 42 },
+  ];
+  for (const task of broilerTasks) {
+    await db.workflowTaskTemplate.upsert({
+      where: { id: `seed-task-broiler-${task.sequence}` },
+      update: {},
+      create: { id: `seed-task-broiler-${task.sequence}`, workflowTemplateId: broilerWorkflow.id, ...task },
+    });
+  }
+
   // ---------- Production areas: nursery benches + beds ----------
 
   for (let n = 1; n <= 2; n++) {
@@ -358,6 +515,48 @@ async function main() {
         },
       });
     }
+  }
+
+  for (let n = 1; n <= 2; n++) {
+    await db.productionArea.upsert({
+      where: { farmId_code: { farmId: farm.id, code: `TRACTOR-${n}` } },
+      update: {},
+      create: {
+        farmId: farm.id,
+        areaType: "TRACTOR",
+        code: `TRACTOR-${n}`,
+        name: `Tractor ${n}`,
+        capacity: 50,
+        capacityUnit: "birds",
+      },
+    });
+  }
+
+  await db.productionArea.upsert({
+    where: { farmId_code: { farmId: farm.id, code: "COOP-1" } },
+    update: {},
+    create: {
+      farmId: farm.id,
+      areaType: "COOP",
+      code: "COOP-1",
+      name: "Main Coop",
+      capacity: 100,
+      capacityUnit: "birds",
+    },
+  });
+
+  for (let n = 1; n <= 3; n++) {
+    await db.productionArea.upsert({
+      where: { farmId_code: { farmId: farm.id, code: `PADDOCK-${n}` } },
+      update: {},
+      create: {
+        farmId: farm.id,
+        areaType: "PADDOCK",
+        code: `PADDOCK-${n}`,
+        name: `Paddock ${n}`,
+        areaM2: 500,
+      },
+    });
   }
 
   // ---------- Inventory ----------
@@ -428,6 +627,25 @@ async function main() {
       unit: "kg",
       unitCost: 2.5,
       storageArea: "Compost bay",
+    },
+  });
+
+  const feedItem = await db.item.upsert({
+    where: { farmId_code: { farmId: farm.id, code: "FEED-LAYER" } },
+    update: {},
+    create: { farmId: farm.id, itemType: "FEED", code: "FEED-LAYER", name: "Layer feed pellets", defaultUnit: "kg" },
+  });
+  await db.inventoryLot.upsert({
+    where: { itemId_lotCode: { itemId: feedItem.id, lotCode: "FL-0001" } },
+    update: {},
+    create: {
+      itemId: feedItem.id,
+      lotCode: "FL-0001",
+      quantityReceived: 200,
+      quantityRemaining: 200,
+      unit: "kg",
+      unitCost: 1.2,
+      storageArea: "Feed shed",
     },
   });
 

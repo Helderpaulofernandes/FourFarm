@@ -7,12 +7,16 @@ import { ActivityInputLogger } from "@/components/ActivityInputLogger";
 import { HarvestForm } from "@/components/HarvestForm";
 import { CompleteBatchButton } from "@/components/CompleteBatchButton";
 import { ActivityLogPanel } from "@/components/ActivityLogPanel";
+import { FCRCard } from "@/components/FCRCard";
+
+const POULTRY_AREA_TYPES = new Set(["COOP", "TRACTOR", "PADDOCK"]);
 
 export default async function BatchDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const [batch, areas, lots] = await Promise.all([getBatch(id), listProductionAreas(), listAvailableLots()]);
 
-  const beds = areas.filter((a) => a.areaType === "BED");
+  const isPoultry = batch.enterpriseType === "LAYERS" || batch.enterpriseType === "BROILERS";
+  const destinationAreas = areas.filter((a) => (isPoultry ? POULTRY_AREA_TYPES.has(a.areaType) : a.areaType === "BED"));
   const currentLocation = batch.locations.find((l) => !l.endDateTime);
 
   return (
@@ -25,30 +29,33 @@ export default async function BatchDetailPage({ params }: { params: Promise<{ id
           <p className="text-sm text-stone-500">
             {batch.batchCode} · {batch.status.toLowerCase().replace(/_/g, " ")}
             {currentLocation && ` · ${currentLocation.area.name}`}
+            {batch.currentQuantity != null && ` · ${batch.currentQuantity} ${batch.quantityUnit ?? ""}`}
           </p>
         </div>
         {batch.status !== "COMPLETED" && batch.status !== "ABANDONED" && <CompleteBatchButton batchId={batch.id} />}
       </div>
 
+      {isPoultry && <FCRCard activities={batch.activities} harvests={batch.harvests} />}
+
       <div>
-        <h2 className="mb-2 text-sm font-medium text-stone-500">Sow-to-harvest timeline</h2>
-        <BatchTimeline batchId={batch.id} activities={batch.activities} beds={beds} />
+        <h2 className="mb-2 text-sm font-medium text-stone-500">{isPoultry ? "Flock timeline" : "Sow-to-harvest timeline"}</h2>
+        <BatchTimeline batchId={batch.id} activities={batch.activities} destinationAreas={destinationAreas} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-6">
           <div>
             <h2 className="mb-2 text-sm font-medium text-stone-500">Log an activity</h2>
-            <ActivityLogger batchId={batch.id} />
+            <ActivityLogger batchId={batch.id} isPoultry={isPoultry} />
           </div>
 
           <div>
-            <h2 className="mb-2 text-sm font-medium text-stone-500">Log an input</h2>
+            <h2 className="mb-2 text-sm font-medium text-stone-500">{isPoultry ? "Log feed" : "Log an input"}</h2>
             <ActivityInputLogger batchId={batch.id} lots={lots} />
           </div>
 
           <div>
-            <h2 className="mb-2 text-sm font-medium text-stone-500">Log a harvest</h2>
+            <h2 className="mb-2 text-sm font-medium text-stone-500">{isPoultry ? "Log eggs / processing output" : "Log a harvest"}</h2>
             <HarvestForm batchId={batch.id} defaultUnit={batch.profile?.expectedYieldUnit?.split("/")[0] ?? "kg"} />
           </div>
 

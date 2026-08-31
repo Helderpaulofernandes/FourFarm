@@ -59,18 +59,26 @@ export async function createInventoryLot(input: InventoryLotInput) {
   return lot;
 }
 
-export async function logActivityInput(input: LogActivityInputInput, growingActivityType: "FERTILIZE" | "FEED" | "MULCH" = "FERTILIZE") {
+const ACTIVITY_TYPE_BY_ITEM: Record<string, "FEED" | "FERTILIZE" | "MULCH"> = {
+  FEED: "FEED",
+  COMPOST: "FERTILIZE",
+  CONDITIONER: "FERTILIZE",
+  AMENDMENT: "FERTILIZE",
+};
+
+export async function logActivityInput(input: LogActivityInputInput) {
   const data = logActivityInputSchema.parse(input);
   const farmId = await getCurrentFarmId();
 
-  const lot = await db.inventoryLot.findUniqueOrThrow({ where: { id: data.inventoryLotId } });
+  const lot = await db.inventoryLot.findUniqueOrThrow({ where: { id: data.inventoryLotId }, include: { item: true } });
+  const activityType = ACTIVITY_TYPE_BY_ITEM[lot.item.itemType] ?? "FERTILIZE";
 
   const [activity] = await db.$transaction([
     db.activity.create({
       data: {
         farmId,
         batchId: data.batchId,
-        activityType: growingActivityType,
+        activityType,
         status: "DONE",
         actualStartDateTime: new Date(),
         actualEndDateTime: new Date(),

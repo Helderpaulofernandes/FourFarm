@@ -3,7 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getCurrentFarmId } from "@/lib/farm-context";
-import { speciesSchema, varietyBreedSchema, cropProfileSchema, type SpeciesInput, type VarietyBreedInput, type CropProfileInput } from "@/schemas/species";
+import {
+  speciesSchema,
+  varietyBreedSchema,
+  cropProfileSchema,
+  poultryProfileSchema,
+  type SpeciesInput,
+  type VarietyBreedInput,
+  type CropProfileInput,
+  type PoultryProfileInput,
+} from "@/schemas/species";
 
 export async function listSpecies() {
   const farmId = await getCurrentFarmId();
@@ -12,7 +21,7 @@ export async function listSpecies() {
     include: {
       varieties: {
         include: {
-          profiles: { include: { cropProfile: true, method: true, workflowTemplates: true } },
+          profiles: { include: { cropProfile: true, poultryProfile: true, method: true, workflowTemplates: true } },
         },
       },
     },
@@ -26,7 +35,7 @@ export async function listVarietyBreeds() {
     where: { species: { farmId } },
     include: {
       species: true,
-      profiles: { where: { active: true }, include: { workflowTemplates: true } },
+      profiles: { where: { active: true }, include: { workflowTemplates: true, method: true } },
     },
     orderBy: { name: "asc" },
   });
@@ -89,6 +98,64 @@ export async function createCropProfile(input: CropProfileInput) {
           targetTransplantAgeDays: data.targetNurseryDays,
           daysToFirstHarvest: data.targetHarvestStartDays,
           harvestWindowDays: data.targetHarvestWindowDays,
+        },
+      },
+    },
+  });
+
+  revalidatePath("/admin/species");
+  return profile;
+}
+
+export async function createPoultryProfile(input: PoultryProfileInput) {
+  const data = poultryProfileSchema.parse(input);
+
+  const profile = await db.productionProfile.create({
+    data: {
+      varietyBreedId: data.varietyBreedId,
+      methodId: data.methodId,
+      name: data.name,
+      expectedYieldValue: data.expectedLiveWeightKg,
+      expectedYieldUnit: data.flockType === "LAYER" ? "eggs/hen/week" : "kg live weight",
+      poultryProfile: {
+        create: {
+          flockType: data.flockType,
+          breedName: data.breedName,
+          broodingDays: data.broodingDays,
+          growOutDays: data.growOutDays,
+          targetStockingDensity: data.targetStockingDensity,
+          expectedFeedConsumptionPerBirdDay: data.expectedFeedConsumptionPerBirdDay,
+          expectedEggsPerHenWeek: data.expectedEggsPerHenWeek,
+          expectedLiveWeightKg: data.expectedLiveWeightKg,
+          targetProcessingAgeDays: data.targetProcessingAgeDays,
+        },
+      },
+    },
+  });
+
+  revalidatePath("/admin/species");
+  return profile;
+}
+
+export async function updatePoultryProfile(profileId: string, input: PoultryProfileInput) {
+  const data = poultryProfileSchema.parse(input);
+
+  const profile = await db.productionProfile.update({
+    where: { id: profileId },
+    data: {
+      name: data.name,
+      expectedYieldValue: data.expectedLiveWeightKg,
+      poultryProfile: {
+        update: {
+          flockType: data.flockType,
+          breedName: data.breedName,
+          broodingDays: data.broodingDays,
+          growOutDays: data.growOutDays,
+          targetStockingDensity: data.targetStockingDensity,
+          expectedFeedConsumptionPerBirdDay: data.expectedFeedConsumptionPerBirdDay,
+          expectedEggsPerHenWeek: data.expectedEggsPerHenWeek,
+          expectedLiveWeightKg: data.expectedLiveWeightKg,
+          targetProcessingAgeDays: data.targetProcessingAgeDays,
         },
       },
     },

@@ -34,3 +34,21 @@ export const cropProfileSchema = z.object({
   hardeningDays: z.coerce.number().int().positive().optional(),
 });
 export type CropProfileInput = z.infer<typeof cropProfileSchema>;
+
+export const flockTypes = ["LAYER", "BROILER"] as const;
+
+export const poultryProfileSchema = z.object({
+  varietyBreedId: z.string().min(1, "Required"),
+  methodId: z.string().min(1, "Required"),
+  name: z.string().min(1, "Required"),
+  flockType: z.enum(flockTypes),
+  breedName: z.string().optional(),
+  broodingDays: z.coerce.number().int().positive().optional(),
+  growOutDays: z.coerce.number().int().positive().optional(),
+  targetStockingDensity: z.coerce.number().positive().optional(),
+  expectedFeedConsumptionPerBirdDay: z.coerce.number().positive().optional(),
+  expectedEggsPerHenWeek: z.coerce.number().positive().optional(),
+  expectedLiveWeightKg: z.coerce.number().positive().optional(),
+  targetProcessingAgeDays: z.coerce.number().int().positive().optional(),
+});
+export type PoultryProfileInput = z.infer<typeof poultryProfileSchema>;

@@ -32,7 +32,7 @@ export async function getBatch(id: string) {
     where: { id, farmId },
     include: {
       varietyBreed: { include: { species: true } },
-      profile: { include: { cropProfile: true } },
+      profile: { include: { cropProfile: true, poultryProfile: true } },
       workflowTemplate: true,
       locations: { orderBy: { startDateTime: "asc" }, include: { area: true } },
       activities: { orderBy: { plannedDateTime: "asc" }, include: { inputs: { include: { inventoryLot: { include: { item: true } } } } } },
@@ -42,8 +42,16 @@ export async function getBatch(id: string) {
   });
 }
 
+const BATCH_CODE_PREFIX: Record<string, string> = {
+  MARKET_GARDEN: "MG",
+  NURSERY: "NU",
+  FOREST: "FO",
+  LAYERS: "LF",
+  BROILERS: "BR",
+};
+
 function nextBatchCode(enterpriseType: string, existingCount: number) {
-  const prefix = enterpriseType === "MARKET_GARDEN" ? "MG" : enterpriseType.slice(0, 2);
+  const prefix = BATCH_CODE_PREFIX[enterpriseType] ?? enterpriseType.slice(0, 2);
   return `${prefix}-${String(existingCount + 1).padStart(4, "0")}`;
 }
 
@@ -55,7 +63,7 @@ export async function createBatch(input: CreateBatchInput) {
     db.varietyBreed.findUniqueOrThrow({ where: { id: data.varietyBreedId } }),
     db.productionProfile.findUniqueOrThrow({
       where: { id: data.profileId },
-      include: { workflowTemplates: { include: { taskTemplates: true } } },
+      include: { workflowTemplates: { include: { taskTemplates: true } }, method: true },
     }),
     db.productionArea.findFirstOrThrow({ where: { id: data.areaId, farmId } }),
     db.productionBatch.count({ where: { farmId } }),
@@ -65,11 +73,13 @@ export async function createBatch(input: CreateBatchInput) {
     ? profile.workflowTemplates.find((w) => w.id === data.workflowTemplateId)
     : profile.workflowTemplates[0];
 
+  const enterpriseType = profile.method.productionSystem;
+
   const batch = await db.productionBatch.create({
     data: {
       farmId,
-      batchCode: nextBatchCode("MARKET_GARDEN", batchCount),
-      enterpriseType: "MARKET_GARDEN",
+      batchCode: nextBatchCode(enterpriseType, batchCount),
+      enterpriseType,
       varietyBreedId: varietyBreed.id,
       profileId: profile.id,
       profileVersion: profile.version,
@@ -86,7 +96,7 @@ export async function createBatch(input: CreateBatchInput) {
           startDateTime: data.startedAt,
           quantity: data.initialQuantity,
           unit: data.quantityUnit,
-          placementType: "SOWN",
+          placementType: enterpriseType === "LAYERS" || enterpriseType === "BROILERS" ? "PLACED" : "SOWN",
         },
       },
     },
@@ -144,6 +154,12 @@ export async function moveBatch(input: MoveBatchInput, activityId?: string) {
   });
   const currentLocation = batch.locations[0];
 
+  // A plant's first move out of the nursery is a "transplant" and flips the
+  // batch into TRANSPLANTED status; a flock rotating between paddocks is just
+  // a MOVED placement that doesn't change the batch's lifecycle status.
+  const isTransplant = batch.enterpriseType !== "LAYERS" && batch.enterpriseType !== "BROILERS" && batch.status !== "TRANSPLANTED";
+  const placementType = isTransplant ? "TRANSPLANTED" : "MOVED";
+
   await db.$transaction([
     ...(currentLocation
       ? [
@@ -160,11 +176,13 @@ export async function moveBatch(input: MoveBatchInput, activityId?: string) {
         startDateTime: new Date(),
         quantity: data.quantity ?? batch.currentQuantity ?? undefined,
         unit: batch.quantityUnit ?? undefined,
-        placementType: "TRANSPLANTED",
+        placementType,
         activityId,
       },
     }),
-    db.productionBatch.update({ where: { id: batch.id }, data: { status: "TRANSPLANTED" } }),
+    ...(isTransplant
+      ? [db.productionBatch.update({ where: { id: batch.id }, data: { status: "TRANSPLANTED" as const } })]
+      : []),
     ...(activityId
       ? [
           db.activity.update({
@@ -183,17 +201,28 @@ export async function logActivity(input: LogActivityInput) {
   const data = logActivitySchema.parse(input);
   const farmId = await getCurrentFarmId();
 
-  const activity = await db.activity.create({
-    data: {
-      farmId,
-      batchId: data.batchId,
-      activityType: data.activityType,
-      status: "DONE",
-      actualStartDateTime: new Date(),
-      actualEndDateTime: new Date(),
-      internalNotes: data.notes,
-    },
-  });
+  const [activity] = await db.$transaction([
+    db.activity.create({
+      data: {
+        farmId,
+        batchId: data.batchId,
+        activityType: data.activityType,
+        status: "DONE",
+        actualStartDateTime: new Date(),
+        actualEndDateTime: new Date(),
+        internalNotes: data.notes,
+        quantity: data.quantity,
+      },
+    }),
+    ...(data.activityType === "MORTALITY" && data.quantity
+      ? [
+          db.productionBatch.update({
+            where: { id: data.batchId },
+            data: { currentQuantity: { decrement: data.quantity } },
+          }),
+        ]
+      : []),
+  ]);
 
   revalidatePath(`/admin/batches/${data.batchId}`);
   return activity;

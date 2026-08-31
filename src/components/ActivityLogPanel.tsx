@@ -6,6 +6,7 @@ type Activity = {
   actualEndDateTime: Date | string | null;
   plannedDateTime: Date | string | null;
   internalNotes: string | null;
+  quantity?: number | null;
   inputs: Input[];
 };
 type Harvest = { id: string; harvestLotCode: string; grossQuantity: number; unit: string; harvestDateTime: Date | string };
@@ -21,6 +22,7 @@ export function ActivityLogPanel({ activities, harvests }: { activities: Activit
     if (a.inputs.length > 0) {
       detailParts.push(...a.inputs.map((i) => `${i.quantity}${i.unit} ${i.inventoryLot.item.name}`));
     }
+    if (a.activityType === "MORTALITY" && a.quantity) detailParts.push(`${a.quantity} bird(s)`);
     if (a.internalNotes && a.inputs.length === 0) detailParts.push(a.internalNotes);
     entries.push({
       id: a.id,

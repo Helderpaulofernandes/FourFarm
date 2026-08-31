@@ -4,9 +4,25 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBatch } from "@/server/actions/production-batches";
 
-type Profile = { id: string; name: string; nurseryRequired: boolean; workflowTemplates: { id: string; name: string }[] };
+type Profile = {
+  id: string;
+  name: string;
+  nurseryRequired: boolean;
+  method: { productionSystem: string };
+  workflowTemplates: { id: string; name: string }[];
+};
 type Variety = { id: string; name: string; species: { commonName: string }; profiles: Profile[] };
 type Area = { id: string; name: string; areaType: string };
+
+const AREA_TYPES_BY_SYSTEM: Record<string, string[]> = {
+  LAYERS: ["COOP", "TRACTOR", "PADDOCK"],
+  BROILERS: ["COOP", "TRACTOR", "PADDOCK"],
+  FOREST: ["FOREST_ROW"],
+};
+
+function defaultQuantityUnit(productionSystem?: string) {
+  return productionSystem === "LAYERS" || productionSystem === "BROILERS" ? "birds" : "plants";
+}
 
 export function BatchForm({ varieties, areas }: { varieties: Variety[]; areas: Area[] }) {
   const router = useRouter();
@@ -15,7 +31,7 @@ export function BatchForm({ varieties, areas }: { varieties: Variety[]; areas: A
   const [profileId, setProfileId] = useState(varieties[0]?.profiles[0]?.id ?? "");
   const [areaId, setAreaId] = useState("");
   const [quantity, setQuantity] = useState("100");
-  const [unit, setUnit] = useState("plants");
+  const [unit, setUnit] = useState(defaultQuantityUnit(varieties[0]?.profiles[0]?.method.productionSystem));
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -25,9 +41,16 @@ export function BatchForm({ varieties, areas }: { varieties: Variety[]; areas: A
 
   const suggestedAreas = useMemo(() => {
     if (!selectedProfile) return areas;
-    const type = selectedProfile.nurseryRequired ? "NURSERY_BENCH" : "BED";
-    return areas.filter((a) => a.areaType === type);
+    const system = selectedProfile.method.productionSystem;
+    const types = AREA_TYPES_BY_SYSTEM[system] ?? (selectedProfile.nurseryRequired ? ["NURSERY_BENCH"] : ["BED"]);
+    return areas.filter((a) => types.includes(a.areaType));
   }, [selectedProfile, areas]);
+
+  function selectProfile(profile: Profile | undefined) {
+    setProfileId(profile?.id ?? "");
+    setUnit(defaultQuantityUnit(profile?.method.productionSystem));
+    setAreaId("");
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -77,7 +100,7 @@ export function BatchForm({ varieties, areas }: { varieties: Variety[]; areas: A
             onChange={(e) => {
               setVarietyId(e.target.value);
               const v = varieties.find((x) => x.id === e.target.value);
-              setProfileId(v?.profiles[0]?.id ?? "");
+              selectProfile(v?.profiles[0]);
             }}
             className="mt-1 h-11 w-full rounded-lg border border-stone-300 px-3"
           >
@@ -90,7 +113,11 @@ export function BatchForm({ varieties, areas }: { varieties: Variety[]; areas: A
         </div>
         <div>
           <label className="text-sm font-medium text-stone-700">Profile</label>
-          <select value={profileId} onChange={(e) => setProfileId(e.target.value)} className="mt-1 h-11 w-full rounded-lg border border-stone-300 px-3">
+          <select
+            value={profileId}
+            onChange={(e) => selectProfile(profiles.find((p) => p.id === e.target.value))}
+            className="mt-1 h-11 w-full rounded-lg border border-stone-300 px-3"
+          >
             {profiles.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}

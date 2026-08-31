@@ -20,19 +20,29 @@ function toDateInputValue(d: Date | string | null) {
   return new Date(d).toISOString().slice(0, 10);
 }
 
+const MOVE_TRIGGER_TYPES = new Set(["TRANSPLANT", "MOVE"]);
+
 // Only the tasks generated from the batch's workflow template (taskTemplateId
 // set) belong in the planner — ad-hoc logged activities show in the log panel
 // instead, so the planner stays a clean sow-to-harvest timeline.
-export function BatchTimeline({ batchId, activities, beds }: { batchId: string; activities: Activity[]; beds: Area[] }) {
+export function BatchTimeline({
+  batchId,
+  activities,
+  destinationAreas,
+}: {
+  batchId: string;
+  activities: Activity[];
+  destinationAreas: Area[];
+}) {
   const router = useRouter();
   const [movingActivityId, setMovingActivityId] = useState<string | null>(null);
-  const [targetAreaId, setTargetAreaId] = useState(beds[0]?.id ?? "");
+  const [targetAreaId, setTargetAreaId] = useState(destinationAreas[0]?.id ?? "");
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const plannedTasks = activities.filter((a) => a.taskTemplateId);
 
   async function handleComplete(activity: Activity) {
-    if (activity.activityType === "TRANSPLANT") {
+    if (MOVE_TRIGGER_TYPES.has(activity.activityType)) {
       setMovingActivityId(activity.id);
       return;
     }
@@ -88,9 +98,9 @@ export function BatchTimeline({ batchId, activities, beds }: { batchId: string; 
               {movingActivityId === activity.id && (
                 <div className="mt-2 space-y-1 border-t border-stone-100 pt-2">
                   <select value={targetAreaId} onChange={(e) => setTargetAreaId(e.target.value)} className="h-8 w-full rounded border border-stone-300 px-1 text-xs">
-                    {beds.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
+                    {destinationAreas.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name}
                       </option>
                     ))}
                   </select>

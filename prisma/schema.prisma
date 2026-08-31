@@ -65,6 +65,11 @@ enum SourceType {
   OWN_TRIAL
 }
 
+enum FlockType {
+  LAYER
+  BROILER
+}
+
 enum MaturityBasis {
   FROM_SOWING
   FROM_TRANSPLANT
@@ -143,6 +148,7 @@ enum PublicStatus {
 
 enum PlacementType {
   SOWN
+  PLACED
   TRANSPLANTED
   MOVED
   GRAZED
@@ -392,6 +398,7 @@ model ProductionProfile {
   active                  Boolean          @default(true)
 
   cropProfile       CropProfile?
+  poultryProfile    PoultryProfile?
   seasonRules       SeasonRule[]
   workflowTemplates WorkflowTemplate[]
   batches           ProductionBatch[]
@@ -438,6 +445,26 @@ model CropProfile {
   harvestFrequencyDays     Int?
   successionFriendly       Boolean       @default(false)
   successionIntervalDays   Int?
+}
+
+// Poultry-specific extension of ProductionProfile — same attach pattern as CropProfile.
+model PoultryProfile {
+  id        String            @id @default(cuid())
+  profileId String            @unique
+  profile   ProductionProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  flockType                         FlockType
+  breedName                         String?
+  broodingDays                      Int?
+  growOutDays                       Int?
+  targetStockingDensity             Float?
+  targetStockingDensityUnit         String?
+  expectedFeedConsumptionPerBirdDay Float?
+  expectedEggsPerHenWeek            Float?
+  expectedLiveWeightKg              Float?
+  targetLayingStartDays             Int?
+  targetProcessingAgeDays           Int?
+  expectedMortalityPct              Float?
 }
 
 // Season windows as rows, not Jan-Dec columns — supports multiple climate zones
