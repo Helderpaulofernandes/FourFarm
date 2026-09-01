@@ -1,13 +1,21 @@
 import Link from "next/link";
 import { listPublicProducts } from "@/server/actions/products";
+import { formatMoney } from "@/lib/format";
 
 export default async function StorePage() {
   const products = await listPublicProducts();
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
-      <h1 className="text-2xl font-semibold text-stone-900">Our Produce</h1>
-      <p className="mt-1 text-stone-500">Grown here at Four Farm — tap a product to see how we grow it.</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-stone-900">Our Produce</h1>
+          <p className="mt-1 text-stone-500">Grown here at Four Farm — tap a product to see how we grow it.</p>
+        </div>
+        <Link href="/store/order-lookup" className="mt-1 whitespace-nowrap text-sm text-green-700 underline">
+          Track an order
+        </Link>
+      </div>
 
       <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
         {products.map((product) => (
@@ -21,7 +29,7 @@ export default async function StorePage() {
               {product.varietyBreed && `${product.varietyBreed.species.commonName} — ${product.varietyBreed.name}`}
             </div>
             <div className="mt-2 text-lg font-semibold text-stone-900">
-              {product.price != null ? `R${product.price.toFixed(2)}` : "Price on enquiry"}{" "}
+              {product.price != null ? formatMoney(product.price) : "Price on enquiry"}{" "}
               <span className="text-sm font-normal text-stone-500">/ {product.saleUnit}</span>
             </div>
           </Link>

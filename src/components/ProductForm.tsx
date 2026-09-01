@@ -26,6 +26,7 @@ export function ProductForm({
   const [saleUnit, setSaleUnit] = useState(existing?.saleUnit ?? "");
   const [standardPackSize, setStandardPackSize] = useState(existing?.standardPackSize ?? "");
   const [price, setPrice] = useState(existing?.price?.toString() ?? "");
+  const [stockOnHand, setStockOnHand] = useState(existing?.stockOnHand?.toString() ?? "");
   const [varietyBreedId, setVarietyBreedId] = useState(existing?.varietyBreedId ?? "");
   const [profileId, setProfileId] = useState(existing?.profileId ?? "");
   const [publicVisible, setPublicVisible] = useState(existing?.publicVisible ?? false);
@@ -47,6 +48,7 @@ export function ProductForm({
         saleUnit,
         standardPackSize: standardPackSize || undefined,
         price: price ? Number(price) : undefined,
+        stockOnHand: stockOnHand ? Number(stockOnHand) : undefined,
         varietyBreedId: varietyBreedId || undefined,
         profileId: profileId || undefined,
         publicVisible,
@@ -61,6 +63,7 @@ export function ProductForm({
         setSaleUnit("");
         setStandardPackSize("");
         setPrice("");
+        setStockOnHand("");
         setVarietyBreedId("");
         setProfileId("");
         setPublicVisible(false);
@@ -141,6 +144,16 @@ export function ProductForm({
         <div>
           <label className="text-sm font-medium text-stone-700">Price</label>
           <input type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className="mt-1 h-11 w-full rounded-lg border border-stone-300 px-3" />
+        </div>
+        <div>
+          <label className="text-sm font-medium text-stone-700">Stock on hand (optional)</label>
+          <input
+            type="number"
+            value={stockOnHand}
+            onChange={(e) => setStockOnHand(e.target.value)}
+            placeholder="Leave blank for unlimited"
+            className="mt-1 h-11 w-full rounded-lg border border-stone-300 px-3"
+          />
         </div>
         <label className="col-span-2 flex items-center gap-2 text-sm text-stone-700">
           <input type="checkbox" checked={publicVisible} onChange={(e) => setPublicVisible(e.target.checked)} /> Visible in public store

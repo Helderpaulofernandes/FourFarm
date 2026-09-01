@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { getPublicProduct } from "@/server/actions/products";
+import { formatMoney } from "@/lib/format";
+import { AddToCartButton } from "@/components/AddToCartButton";
 
 export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -19,12 +21,16 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       )}
 
       <div className="mt-4 text-2xl font-semibold text-stone-900">
-        {product.price != null ? `R${product.price.toFixed(2)}` : "Price on enquiry"}{" "}
+        {product.price != null ? formatMoney(product.price) : "Price on enquiry"}{" "}
         <span className="text-base font-normal text-stone-500">
           / {product.saleUnit}
           {product.standardPackSize ? ` (${product.standardPackSize})` : ""}
         </span>
       </div>
+
+      {product.price != null && (
+        <AddToCartButton productId={product.id} name={product.name} price={product.price} saleUnit={product.saleUnit} />
+      )}
 
       {product.varietyBreed?.publicDescription && (
         <div className="mt-6">

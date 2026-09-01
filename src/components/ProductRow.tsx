@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ProductForm } from "@/components/ProductForm";
+import { formatMoney } from "@/lib/format";
 
 type Profile = { id: string; name: string };
 type Variety = { id: string; name: string; species: { commonName: string }; profiles: Profile[] };
@@ -13,6 +14,7 @@ type Product = {
   saleUnit: string;
   standardPackSize: string | null;
   price: number | null;
+  stockOnHand: number | null;
   varietyBreedId: string | null;
   profileId: string | null;
   publicVisible: boolean;
@@ -34,6 +36,7 @@ export function ProductRow({ product, varieties }: { product: Product; varieties
           saleUnit: product.saleUnit,
           standardPackSize: product.standardPackSize ?? undefined,
           price: product.price ?? undefined,
+          stockOnHand: product.stockOnHand ?? undefined,
           varietyBreedId: product.varietyBreedId ?? undefined,
           profileId: product.profileId ?? undefined,
           publicVisible: product.publicVisible,
@@ -48,7 +51,8 @@ export function ProductRow({ product, varieties }: { product: Product; varieties
       <div>
         <div className="font-medium text-stone-900">{product.name}</div>
         <div className="text-sm text-stone-500">
-          {product.sku} · {product.price != null ? `R${product.price.toFixed(2)}` : "no price"} / {product.saleUnit}
+          {product.sku} · {product.price != null ? formatMoney(product.price) : "no price"} / {product.saleUnit}
+          {product.stockOnHand != null && ` · ${product.stockOnHand} in stock`}
           {product.varietyBreed && ` · ${product.varietyBreed.species.commonName} — ${product.varietyBreed.name}`}
           {product.publicVisible && <span className="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700">public</span>}
         </div>
