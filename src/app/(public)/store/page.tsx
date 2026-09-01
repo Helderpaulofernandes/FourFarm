@@ -30,19 +30,27 @@ export default async function StorePage() {
           <Link
             key={product.id}
             href={`/store/${product.id}`}
-            className="rounded-xl border border-stone-200 bg-white p-4 active:bg-stone-50"
+            className="overflow-hidden rounded-xl border border-stone-200 bg-white active:bg-stone-50"
           >
-            <div className="font-medium text-stone-900">{product.name}</div>
-            <div className="text-sm text-stone-500">
-              {product.varietyBreed && `${product.varietyBreed.species.commonName} — ${product.varietyBreed.name}`}
-            </div>
-            <div className="mt-2 text-lg font-semibold text-stone-900">
-              {product.price != null ? formatMoney(product.price) : "Price on enquiry"}{" "}
-              <span className="text-sm font-normal text-stone-500">/ {product.saleUnit}</span>
-            </div>
-            {product.isSubscription && (
-              <span className="mt-1 inline-block rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">CSA subscription</span>
+            {product.primaryMediaUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={product.primaryMediaUrl} alt={product.name} className="h-40 w-full object-cover" />
+            ) : (
+              <div className="h-40 w-full bg-stone-100" />
             )}
+            <div className="p-4">
+              <div className="font-medium text-stone-900">{product.name}</div>
+              <div className="text-sm text-stone-500">
+                {product.varietyBreed && `${product.varietyBreed.species.commonName} — ${product.varietyBreed.name}`}
+              </div>
+              <div className="mt-2 text-lg font-semibold text-stone-900">
+                {product.price != null ? formatMoney(product.price) : "Price on enquiry"}{" "}
+                <span className="text-sm font-normal text-stone-500">/ {product.saleUnit}</span>
+              </div>
+              {product.isSubscription && (
+                <span className="mt-1 inline-block rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">CSA subscription</span>
+              )}
+            </div>
           </Link>
         ))}
         {products.length === 0 && <p className="text-stone-500">Nothing listed yet — check back soon.</p>}

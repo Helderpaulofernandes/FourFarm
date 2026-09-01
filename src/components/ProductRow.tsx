@@ -19,6 +19,7 @@ type Product = {
   profileId: string | null;
   publicVisible: boolean;
   isSubscription: boolean;
+  primaryMediaUrl: string | null;
   varietyBreed: { name: string; species: { commonName: string } } | null;
 };
 
@@ -42,6 +43,7 @@ export function ProductRow({ product, varieties }: { product: Product; varieties
           profileId: product.profileId ?? undefined,
           publicVisible: product.publicVisible,
           isSubscription: product.isSubscription,
+          primaryMediaUrl: product.primaryMediaUrl ?? undefined,
         }}
         onDone={() => setEditing(false)}
       />
@@ -50,14 +52,22 @@ export function ProductRow({ product, varieties }: { product: Product; varieties
 
   return (
     <div className="flex items-center justify-between rounded-xl border border-stone-200 bg-white p-4">
-      <div>
-        <div className="font-medium text-stone-900">{product.name}</div>
-        <div className="text-sm text-stone-500">
-          {product.sku} · {product.price != null ? formatMoney(product.price) : "no price"} / {product.saleUnit}
-          {product.stockOnHand != null && ` · ${product.stockOnHand} in stock`}
-          {product.varietyBreed && ` · ${product.varietyBreed.species.commonName} — ${product.varietyBreed.name}`}
-          {product.publicVisible && <span className="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700">public</span>}
-          {product.isSubscription && <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">CSA</span>}
+      <div className="flex items-center gap-3">
+        {product.primaryMediaUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={product.primaryMediaUrl} alt="" className="h-12 w-12 rounded-lg object-cover" />
+        ) : (
+          <div className="h-12 w-12 rounded-lg bg-stone-100" />
+        )}
+        <div>
+          <div className="font-medium text-stone-900">{product.name}</div>
+          <div className="text-sm text-stone-500">
+            {product.sku} · {product.price != null ? formatMoney(product.price) : "no price"} / {product.saleUnit}
+            {product.stockOnHand != null && ` · ${product.stockOnHand} in stock`}
+            {product.varietyBreed && ` · ${product.varietyBreed.species.commonName} — ${product.varietyBreed.name}`}
+            {product.publicVisible && <span className="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700">public</span>}
+            {product.isSubscription && <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">CSA</span>}
+          </div>
         </div>
       </div>
       <button onClick={() => setEditing(true)} className="h-9 rounded-lg border border-stone-300 px-3 text-sm font-medium text-stone-700">

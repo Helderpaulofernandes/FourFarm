@@ -11,11 +11,18 @@ export default async function TransparencyPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
+      {farm.heroImageUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={farm.heroImageUrl} alt={farm.name} className="mb-6 h-56 w-full rounded-xl object-cover" />
+      )}
+
       <h1 className="text-2xl font-semibold text-stone-900">How We Grow</h1>
       <p className="mt-1 text-stone-500">
         {farm.name}
         {farm.climateZone ? ` — ${farm.climateZone}` : ""}
       </p>
+
+      {farm.publicStory && <p className="mt-4 text-stone-700">{farm.publicStory}</p>}
 
       <div className="mt-8">
         <h2 className="text-sm font-medium text-stone-500">What&apos;s growing right now</h2>

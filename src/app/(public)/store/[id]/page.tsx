@@ -14,6 +14,13 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         ← Back to store
       </Link>
 
+      {product.primaryMediaUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={product.primaryMediaUrl} alt={product.name} className="mt-4 h-64 w-full rounded-xl object-cover" />
+      ) : (
+        <div className="mt-4 h-64 w-full rounded-xl bg-stone-100" />
+      )}
+
       <h1 className="mt-3 text-2xl font-semibold text-stone-900">{product.name}</h1>
       {product.varietyBreed && (
         <p className="text-stone-500">

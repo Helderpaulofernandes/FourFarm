@@ -13,7 +13,7 @@ export async function getPublicFarmOverview() {
   const [farm, methods, batchCounts, areaCounts] = await Promise.all([
     db.farm.findUniqueOrThrow({
       where: { id: farmId },
-      select: { name: true, climateZone: true, timezone: true },
+      select: { name: true, climateZone: true, timezone: true, publicStory: true, heroImageUrl: true },
     }),
     db.productionMethod.findMany({
       where: { farmId, active: true, publicDescription: { not: null } },

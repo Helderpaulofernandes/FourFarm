@@ -21,6 +21,9 @@ async function main() {
       climateZone: "Subtropical highlands (SE QLD hinterland)",
       latitude: -26.6858,
       longitude: 152.9515,
+      heroImageUrl: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=1600&q=80",
+      publicStory:
+        "We're a small no-till market garden and pastured livestock operation in the Palmwoods hinterland, growing food the way we'd want to eat it ourselves — building soil instead of depleting it, moving animals across pasture instead of confining them, and keeping every step of the process open to the people who eat what we grow.",
     },
   });
 

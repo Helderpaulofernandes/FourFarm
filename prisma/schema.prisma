@@ -247,6 +247,8 @@ model Farm {
   latitude        Float?
   longitude       Float?
   defaultAreaUnit String   @default("m2")
+  publicStory     String?
+  heroImageUrl    String?
   active          Boolean  @default(true)
   createdAt       DateTime @default(now())
 

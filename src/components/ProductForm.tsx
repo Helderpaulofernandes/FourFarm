@@ -27,6 +27,7 @@ export function ProductForm({
   const [standardPackSize, setStandardPackSize] = useState(existing?.standardPackSize ?? "");
   const [price, setPrice] = useState(existing?.price?.toString() ?? "");
   const [stockOnHand, setStockOnHand] = useState(existing?.stockOnHand?.toString() ?? "");
+  const [primaryMediaUrl, setPrimaryMediaUrl] = useState(existing?.primaryMediaUrl ?? "");
   const [varietyBreedId, setVarietyBreedId] = useState(existing?.varietyBreedId ?? "");
   const [profileId, setProfileId] = useState(existing?.profileId ?? "");
   const [publicVisible, setPublicVisible] = useState(existing?.publicVisible ?? false);
@@ -50,6 +51,7 @@ export function ProductForm({
         standardPackSize: standardPackSize || undefined,
         price: price ? Number(price) : undefined,
         stockOnHand: stockOnHand ? Number(stockOnHand) : undefined,
+        primaryMediaUrl: primaryMediaUrl || undefined,
         varietyBreedId: varietyBreedId || undefined,
         profileId: profileId || undefined,
         publicVisible,
@@ -66,6 +68,7 @@ export function ProductForm({
         setStandardPackSize("");
         setPrice("");
         setStockOnHand("");
+        setPrimaryMediaUrl("");
         setVarietyBreedId("");
         setProfileId("");
         setPublicVisible(false);
@@ -155,6 +158,15 @@ export function ProductForm({
             value={stockOnHand}
             onChange={(e) => setStockOnHand(e.target.value)}
             placeholder="Leave blank for unlimited"
+            className="mt-1 h-11 w-full rounded-lg border border-stone-300 px-3"
+          />
+        </div>
+        <div className="col-span-2">
+          <label className="text-sm font-medium text-stone-700">Photo URL (optional)</label>
+          <input
+            value={primaryMediaUrl}
+            onChange={(e) => setPrimaryMediaUrl(e.target.value)}
+            placeholder="https://... (paste any image URL)"
             className="mt-1 h-11 w-full rounded-lg border border-stone-300 px-3"
           />
         </div>

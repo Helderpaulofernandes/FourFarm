@@ -11,6 +11,7 @@ export const productSchema = z.object({
   // Left unset = untracked/unlimited stock, so listing a product never
   // requires deciding on an inventory count up front.
   stockOnHand: optionalPositiveInt(),
+  primaryMediaUrl: z.string().optional(),
   varietyBreedId: z.string().optional(),
   profileId: z.string().optional(),
   publicVisible: z.boolean().default(false),
