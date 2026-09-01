@@ -8,14 +8,30 @@ export default function HomePage() {
         A no-till market garden and pastured poultry operation. Browse what we&apos;re growing right now, and
         see exactly how it&apos;s raised.
       </p>
-      <Link
-        href="/store"
-        className="mt-6 rounded-full bg-green-700 px-6 py-3 text-sm font-medium text-white active:bg-green-800"
-      >
-        Browse the store
-      </Link>
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <Link
+          href="/store"
+          className="rounded-full bg-green-700 px-6 py-3 text-sm font-medium text-white active:bg-green-800"
+        >
+          Browse the store
+        </Link>
+        <Link
+          href="/transparency"
+          className="rounded-full border border-stone-300 px-6 py-3 text-sm font-medium text-stone-700 active:bg-stone-100"
+        >
+          How we grow
+        </Link>
+      </div>
       <p className="mt-4 max-w-md text-sm text-stone-400">
-        CSA boxes and pick-your-own visits are coming soon.
+        CSA subscriptions are available in the store (look for the CSA badge) — already subscribed?{" "}
+        <Link href="/store/csa/manage" className="text-green-700 underline">
+          Manage it here
+        </Link>
+        . Or{" "}
+        <Link href="/pick-your-own" className="text-green-700 underline">
+          book a pick-your-own visit
+        </Link>
+        .
       </p>
     </div>
   );
