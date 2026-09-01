@@ -325,6 +325,143 @@ async function main() {
     });
   }
 
+  // ---------- Expanded crop database: staples, roots, brassicas, alliums, legumes, herbs ----------
+  // Loop-driven rather than 30 repeated upsert blocks like Tomato/Lettuce above — same
+  // shape (Species -> VarietyBreed -> ProductionProfile -> CropProfile -> SeasonRule),
+  // reusing the existing "No-dig intensive bed" method. sowMonthStart/End give each crop
+  // a real Palmwoods-hinterland-subtropical sowing window (mild but light-frost winters at
+  // elevation, hot humid summers) so there's always something in the "preferred to sow"
+  // window somewhere in this list, whatever month it is — the point of the crop database.
+  type MarketGardenCrop = {
+    commonName: string;
+    scientificName: string;
+    family: string;
+    lifeCycle: "ANNUAL" | "BIENNIAL" | "PERENNIAL";
+    varietyName: string;
+    rotationGroup: (typeof rotationGroups)[number] | null;
+    publicDescription: string;
+    nurseryRequired: boolean;
+    targetNurseryDays: number | null;
+    hardeningDays: number | null;
+    daysToGerminationTypical: number | null;
+    targetHarvestStartDays: number;
+    targetHarvestWindowDays: number | null;
+    plantSpacingMm: number;
+    rowSpacingMm: number;
+    sowMonthStart: number;
+    sowMonthEnd: number;
+  };
+  const rotationGroups = ["ROOT", "ALLIUM", "FRUIT", "LEGUME", "LEAF"] as const;
+
+  const marketGardenCrops: MarketGardenCrop[] = [
+    { commonName: "Kale", scientificName: "Brassica oleracea var. palmifolia", family: "Brassicaceae", lifeCycle: "ANNUAL", varietyName: "Tuscan Kale", rotationGroup: "LEAF", publicDescription: "A dark, crinkled cooking green that gets sweeter after a light frost.", nurseryRequired: true, targetNurseryDays: 21, hardeningDays: 5, daysToGerminationTypical: 6, targetHarvestStartDays: 60, targetHarvestWindowDays: 60, plantSpacingMm: 400, rowSpacingMm: 450, sowMonthStart: 2, sowMonthEnd: 6 },
+    { commonName: "Silverbeet", scientificName: "Beta vulgaris subsp. vulgaris", family: "Amaranthaceae", lifeCycle: "PERENNIAL", varietyName: "Rainbow Chard", rotationGroup: "LEAF", publicDescription: "A hardy, colourful cut-and-come-again green that crops for months from one planting.", nurseryRequired: true, targetNurseryDays: 21, hardeningDays: 5, daysToGerminationTypical: 8, targetHarvestStartDays: 50, targetHarvestWindowDays: 90, plantSpacingMm: 300, rowSpacingMm: 350, sowMonthStart: 1, sowMonthEnd: 12 },
+    { commonName: "Pak Choy", scientificName: "Brassica rapa subsp. chinensis", family: "Brassicaceae", lifeCycle: "ANNUAL", varietyName: "Pak Choy", rotationGroup: "LEAF", publicDescription: "A crisp, mild Asian green ready in under six weeks.", nurseryRequired: true, targetNurseryDays: 14, hardeningDays: 4, daysToGerminationTypical: 5, targetHarvestStartDays: 40, targetHarvestWindowDays: 14, plantSpacingMm: 200, rowSpacingMm: 250, sowMonthStart: 3, sowMonthEnd: 8 },
+    { commonName: "Mizuna", scientificName: "Brassica rapa var. nipposinica", family: "Brassicaceae", lifeCycle: "ANNUAL", varietyName: "Mizuna", rotationGroup: "LEAF", publicDescription: "A feathery, peppery salad green that keeps regrowing after cutting.", nurseryRequired: true, targetNurseryDays: 14, hardeningDays: 4, daysToGerminationTypical: 5, targetHarvestStartDays: 35, targetHarvestWindowDays: 30, plantSpacingMm: 200, rowSpacingMm: 200, sowMonthStart: 2, sowMonthEnd: 8 },
+    { commonName: "Rocket", scientificName: "Eruca sativa", family: "Brassicaceae", lifeCycle: "ANNUAL", varietyName: "Wild Rocket", rotationGroup: "LEAF", publicDescription: "Peppery salad rocket, fast enough for tight succession plantings.", nurseryRequired: false, targetNurseryDays: null, hardeningDays: null, daysToGerminationTypical: 6, targetHarvestStartDays: 30, targetHarvestWindowDays: 20, plantSpacingMm: 150, rowSpacingMm: 200, sowMonthStart: 2, sowMonthEnd: 9 },
+    { commonName: "English Spinach", scientificName: "Spinacia oleracea", family: "Amaranthaceae", lifeCycle: "ANNUAL", varietyName: "English Spinach", rotationGroup: "LEAF", publicDescription: "A true cool-season spinach that bolts fast once the weather warms.", nurseryRequired: true, targetNurseryDays: 14, hardeningDays: 5, daysToGerminationTypical: 8, targetHarvestStartDays: 45, targetHarvestWindowDays: 21, plantSpacingMm: 200, rowSpacingMm: 250, sowMonthStart: 3, sowMonthEnd: 6 },
+    { commonName: "Mustard Greens", scientificName: "Brassica juncea", family: "Brassicaceae", lifeCycle: "ANNUAL", varietyName: "Green Mustard", rotationGroup: "LEAF", publicDescription: "A spicy, fast-growing green, good picked baby or left to full size.", nurseryRequired: false, targetNurseryDays: null, hardeningDays: null, daysToGerminationTypical: 5, targetHarvestStartDays: 35, targetHarvestWindowDays: 21, plantSpacingMm: 200, rowSpacingMm: 250, sowMonthStart: 2, sowMonthEnd: 8 },
+    { commonName: "Sweet Potato", scientificName: "Ipomoea batatas", family: "Convolvulaceae", lifeCycle: "PERENNIAL", varietyName: "Beauregard", rotationGroup: "ROOT", publicDescription: "A vigorous, sweet orange-fleshed staple, planted from slips rather than seed.", nurseryRequired: false, targetNurseryDays: null, hardeningDays: null, daysToGerminationTypical: null, targetHarvestStartDays: 130, targetHarvestWindowDays: 30, plantSpacingMm: 300, rowSpacingMm: 900, sowMonthStart: 9, sowMonthEnd: 12 },
+    { commonName: "Potato", scientificName: "Solanum tuberosum", family: "Solanaceae", lifeCycle: "ANNUAL", varietyName: "Dutch Cream", rotationGroup: "ROOT", publicDescription: "A creamy, all-purpose potato grown from certified seed potato.", nurseryRequired: false, targetNurseryDays: null, hardeningDays: null, daysToGerminationTypical: null, targetHarvestStartDays: 100, targetHarvestWindowDays: 21, plantSpacingMm: 300, rowSpacingMm: 750, sowMonthStart: 2, sowMonthEnd: 4 },
+    { commonName: "Cassava", scientificName: "Manihot esculenta", family: "Euphorbiaceae", lifeCycle: "PERENNIAL", varietyName: "Cassava", rotationGroup: "ROOT", publicDescription: "A drought-hardy tropical root staple, grown from stem cuttings, not seed.", nurseryRequired: false, targetNurseryDays: null, hardeningDays: null, daysToGerminationTypical: null, targetHarvestStartDays: 270, targetHarvestWindowDays: 60, plantSpacingMm: 900, rowSpacingMm: 900, sowMonthStart: 9, sowMonthEnd: 11 },
+    { commonName: "Pumpkin", scientificName: "Cucurbita maxima", family: "Cucurbitaceae", lifeCycle: "ANNUAL", varietyName: "Queensland Blue", rotationGroup: "FRUIT", publicDescription: "A classic blue-grey Queensland pumpkin that stores for months after harvest.", nurseryRequired: true, targetNurseryDays: 21, hardeningDays: 5, daysToGerminationTypical: 7, targetHarvestStartDays: 110, targetHarvestWindowDays: 30, plantSpacingMm: 1500, rowSpacingMm: 1500, sowMonthStart: 9, sowMonthEnd: 11 },
+    { commonName: "Zucchini", scientificName: "Cucurbita pepo", family: "Cucurbitaceae", lifeCycle: "ANNUAL", varietyName: "Black Beauty", rotationGroup: "FRUIT", publicDescription: "A prolific bush zucchini, best picked young and often.", nurseryRequired: true, targetNurseryDays: 14, hardeningDays: 4, daysToGerminationTypical: 6, targetHarvestStartDays: 50, targetHarvestWindowDays: 60, plantSpacingMm: 900, rowSpacingMm: 900, sowMonthStart: 9, sowMonthEnd: 1 },
+    { commonName: "Cucumber", scientificName: "Cucumis sativus", family: "Cucurbitaceae", lifeCycle: "ANNUAL", varietyName: "Lebanese", rotationGroup: "FRUIT", publicDescription: "A thin-skinned, trellised cucumber with a mild, sweet flavour.", nurseryRequired: true, targetNurseryDays: 14, hardeningDays: 4, daysToGerminationTypical: 5, targetHarvestStartDays: 55, targetHarvestWindowDays: 45, plantSpacingMm: 400, rowSpacingMm: 1200, sowMonthStart: 9, sowMonthEnd: 1 },
+    { commonName: "Capsicum", scientificName: "Capsicum annuum", family: "Solanaceae", lifeCycle: "PERENNIAL", varietyName: "California Wonder", rotationGroup: "FRUIT", publicDescription: "A sweet bell capsicum, slow to start but a long, heavy cropper.", nurseryRequired: true, targetNurseryDays: 56, hardeningDays: 7, daysToGerminationTypical: 10, targetHarvestStartDays: 80, targetHarvestWindowDays: 90, plantSpacingMm: 450, rowSpacingMm: 750, sowMonthStart: 8, sowMonthEnd: 11 },
+    { commonName: "Eggplant", scientificName: "Solanum melongena", family: "Solanaceae", lifeCycle: "PERENNIAL", varietyName: "Black Beauty Eggplant", rotationGroup: "FRUIT", publicDescription: "A glossy purple eggplant that thrives in the summer heat.", nurseryRequired: true, targetNurseryDays: 56, hardeningDays: 7, daysToGerminationTypical: 8, targetHarvestStartDays: 80, targetHarvestWindowDays: 90, plantSpacingMm: 500, rowSpacingMm: 800, sowMonthStart: 8, sowMonthEnd: 11 },
+    { commonName: "Chilli", scientificName: "Capsicum annuum", family: "Solanaceae", lifeCycle: "PERENNIAL", varietyName: "Cayenne", rotationGroup: "FRUIT", publicDescription: "A reliable medium-heat cayenne chilli, prolific once established.", nurseryRequired: true, targetNurseryDays: 56, hardeningDays: 7, daysToGerminationTypical: 10, targetHarvestStartDays: 85, targetHarvestWindowDays: 120, plantSpacingMm: 450, rowSpacingMm: 750, sowMonthStart: 8, sowMonthEnd: 11 },
+    { commonName: "Snake Bean", scientificName: "Vigna unguiculata subsp. sesquipedalis", family: "Fabaceae", lifeCycle: "ANNUAL", varietyName: "Red Noodle", rotationGroup: "LEGUME", publicDescription: "A heat-loving, heavy-cropping bean that thrives where regular beans struggle.", nurseryRequired: false, targetNurseryDays: null, hardeningDays: null, daysToGerminationTypical: 7, targetHarvestStartDays: 65, targetHarvestWindowDays: 45, plantSpacingMm: 200, rowSpacingMm: 1200, sowMonthStart: 9, sowMonthEnd: 1 },
+    { commonName: "Snow Pea", scientificName: "Pisum sativum", family: "Fabaceae", lifeCycle: "ANNUAL", varietyName: "Oregon Sugar Pod", rotationGroup: "LEGUME", publicDescription: "A sweet, flat-podded pea for the cooler months, best grown on a trellis.", nurseryRequired: false, targetNurseryDays: null, hardeningDays: null, daysToGerminationTypical: 8, targetHarvestStartDays: 60, targetHarvestWindowDays: 30, plantSpacingMm: 100, rowSpacingMm: 600, sowMonthStart: 3, sowMonthEnd: 6 },
+    { commonName: "Dwarf Bean", scientificName: "Phaseolus vulgaris", family: "Fabaceae", lifeCycle: "ANNUAL", varietyName: "Brown Beauty", rotationGroup: "LEGUME", publicDescription: "A compact bush bean needing no staking, good for tight succession sowing.", nurseryRequired: false, targetNurseryDays: null, hardeningDays: null, daysToGerminationTypical: 7, targetHarvestStartDays: 55, targetHarvestWindowDays: 21, plantSpacingMm: 150, rowSpacingMm: 600, sowMonthStart: 9, sowMonthEnd: 1 },
+    { commonName: "Garlic", scientificName: "Allium sativum", family: "Amaryllidaceae", lifeCycle: "ANNUAL", varietyName: "Australian White", rotationGroup: "ALLIUM", publicDescription: "A pungent, long-storing garlic grown from cloves over the cooler months.", nurseryRequired: false, targetNurseryDays: null, hardeningDays: null, daysToGerminationTypical: null, targetHarvestStartDays: 165, targetHarvestWindowDays: 21, plantSpacingMm: 100, rowSpacingMm: 200, sowMonthStart: 3, sowMonthEnd: 5 },
+    { commonName: "Spring Onion", scientificName: "Allium fistulosum", family: "Amaryllidaceae", lifeCycle: "PERENNIAL", varietyName: "White Lisbon", rotationGroup: "ALLIUM", publicDescription: "A mild, quick-cropping onion that can be cut and left to regrow.", nurseryRequired: true, targetNurseryDays: 21, hardeningDays: 5, daysToGerminationTypical: 8, targetHarvestStartDays: 60, targetHarvestWindowDays: 60, plantSpacingMm: 50, rowSpacingMm: 150, sowMonthStart: 1, sowMonthEnd: 12 },
+    { commonName: "Leek", scientificName: "Allium ampeloprasum var. porrum", family: "Amaryllidaceae", lifeCycle: "BIENNIAL", varietyName: "Musselburgh", rotationGroup: "ALLIUM", publicDescription: "A sweet, slow-growing leek, hilled up as it grows for long white shanks.", nurseryRequired: true, targetNurseryDays: 42, hardeningDays: 7, daysToGerminationTypical: 10, targetHarvestStartDays: 120, targetHarvestWindowDays: 45, plantSpacingMm: 150, rowSpacingMm: 300, sowMonthStart: 2, sowMonthEnd: 5 },
+    { commonName: "Broccoli", scientificName: "Brassica oleracea var. italica", family: "Brassicaceae", lifeCycle: "ANNUAL", varietyName: "Green Sprouting", rotationGroup: "LEAF", publicDescription: "A single-headed broccoli that keeps producing side shoots after the main cut.", nurseryRequired: true, targetNurseryDays: 35, hardeningDays: 5, daysToGerminationTypical: 6, targetHarvestStartDays: 90, targetHarvestWindowDays: 30, plantSpacingMm: 450, rowSpacingMm: 600, sowMonthStart: 2, sowMonthEnd: 5 },
+    { commonName: "Cabbage", scientificName: "Brassica oleracea var. capitata", family: "Brassicaceae", lifeCycle: "ANNUAL", varietyName: "Sugarloaf", rotationGroup: "LEAF", publicDescription: "A sweet, pointed cabbage that matures fast into a full head.", nurseryRequired: true, targetNurseryDays: 35, hardeningDays: 5, daysToGerminationTypical: 6, targetHarvestStartDays: 80, targetHarvestWindowDays: 21, plantSpacingMm: 400, rowSpacingMm: 500, sowMonthStart: 2, sowMonthEnd: 5 },
+    { commonName: "Cauliflower", scientificName: "Brassica oleracea var. botrytis", family: "Brassicaceae", lifeCycle: "ANNUAL", varietyName: "Snowball", rotationGroup: "LEAF", publicDescription: "A tight, white-curded cauliflower that needs cool, steady growing conditions.", nurseryRequired: true, targetNurseryDays: 35, hardeningDays: 5, daysToGerminationTypical: 7, targetHarvestStartDays: 100, targetHarvestWindowDays: 21, plantSpacingMm: 500, rowSpacingMm: 600, sowMonthStart: 2, sowMonthEnd: 4 },
+    { commonName: "Coriander", scientificName: "Coriandrum sativum", family: "Apiaceae", lifeCycle: "ANNUAL", varietyName: "Coriander", rotationGroup: null, publicDescription: "A fast-bolting herb best sown little and often through the cooler months.", nurseryRequired: false, targetNurseryDays: null, hardeningDays: null, daysToGerminationTypical: 10, targetHarvestStartDays: 45, targetHarvestWindowDays: 21, plantSpacingMm: 100, rowSpacingMm: 200, sowMonthStart: 3, sowMonthEnd: 8 },
+    { commonName: "Parsley", scientificName: "Petroselinum crispum", family: "Apiaceae", lifeCycle: "BIENNIAL", varietyName: "Flat Leaf", rotationGroup: null, publicDescription: "A slow-to-germinate but long-lasting herb that crops for months.", nurseryRequired: true, targetNurseryDays: 28, hardeningDays: 5, daysToGerminationTypical: 18, targetHarvestStartDays: 70, targetHarvestWindowDays: 120, plantSpacingMm: 200, rowSpacingMm: 250, sowMonthStart: 1, sowMonthEnd: 12 },
+    { commonName: "Carrot", scientificName: "Daucus carota", family: "Apiaceae", lifeCycle: "BIENNIAL", varietyName: "Manchester Table", rotationGroup: "ROOT", publicDescription: "A sweet, straight-rooted carrot, direct sown for the best shape.", nurseryRequired: false, targetNurseryDays: null, hardeningDays: null, daysToGerminationTypical: 14, targetHarvestStartDays: 75, targetHarvestWindowDays: 21, plantSpacingMm: 50, rowSpacingMm: 250, sowMonthStart: 2, sowMonthEnd: 6 },
+    { commonName: "Beetroot", scientificName: "Beta vulgaris subsp. vulgaris", family: "Amaranthaceae", lifeCycle: "BIENNIAL", varietyName: "Detroit Dark Red", rotationGroup: "ROOT", publicDescription: "A sweet, deep-red beetroot, equally good roasted or grated raw.", nurseryRequired: false, targetNurseryDays: null, hardeningDays: null, daysToGerminationTypical: 10, targetHarvestStartDays: 60, targetHarvestWindowDays: 30, plantSpacingMm: 100, rowSpacingMm: 250, sowMonthStart: 2, sowMonthEnd: 6 },
+    { commonName: "Radish", scientificName: "Raphanus sativus", family: "Brassicaceae", lifeCycle: "ANNUAL", varietyName: "French Breakfast", rotationGroup: "ROOT", publicDescription: "The fastest crop in the garden, ready in under a month.", nurseryRequired: false, targetNurseryDays: null, hardeningDays: null, daysToGerminationTypical: 5, targetHarvestStartDays: 28, targetHarvestWindowDays: 14, plantSpacingMm: 50, rowSpacingMm: 150, sowMonthStart: 1, sowMonthEnd: 12 },
+  ];
+
+  for (const crop of marketGardenCrops) {
+    const species = await db.species.upsert({
+      where: { farmId_commonName: { farmId: farm.id, commonName: crop.commonName } },
+      update: {},
+      create: {
+        farmId: farm.id,
+        kingdom: "PLANT",
+        commonName: crop.commonName,
+        scientificName: crop.scientificName,
+        family: crop.family,
+        lifeCycle: crop.lifeCycle,
+        primaryRole: "Food",
+      },
+    });
+
+    const variety = await db.varietyBreed.upsert({
+      where: { speciesId_name: { speciesId: species.id, name: crop.varietyName } },
+      update: {},
+      create: {
+        speciesId: species.id,
+        name: crop.varietyName,
+        recordType: "CULTIVAR",
+        rotationGroup: crop.rotationGroup ?? undefined,
+        publicDescription: crop.publicDescription,
+      },
+    });
+
+    const profile = await db.productionProfile.upsert({
+      where: { varietyBreedId_methodId_version: { varietyBreedId: variety.id, methodId: noDigMethod.id, version: 1 } },
+      update: {},
+      create: {
+        varietyBreedId: variety.id,
+        methodId: noDigMethod.id,
+        name: `${crop.varietyName} bed profile`,
+        version: 1,
+        nurseryRequired: crop.nurseryRequired,
+        targetNurseryDays: crop.targetNurseryDays ?? undefined,
+        targetHarvestStartDays: crop.targetHarvestStartDays,
+        targetHarvestWindowDays: crop.targetHarvestWindowDays ?? undefined,
+        sourceType: "OWN_TRIAL",
+        confidenceLevel: "ESTIMATED",
+      },
+    });
+
+    await db.cropProfile.upsert({
+      where: { profileId: profile.id },
+      update: {},
+      create: {
+        profileId: profile.id,
+        daysToGerminationTypical: crop.daysToGerminationTypical ?? undefined,
+        hardeningDays: crop.hardeningDays ?? undefined,
+        daysInNursery: crop.targetNurseryDays ?? undefined,
+        plantSpacingMm: crop.plantSpacingMm,
+        rowSpacingMm: crop.rowSpacingMm,
+        maturityBasis: crop.nurseryRequired ? "FROM_TRANSPLANT" : "FROM_SOWING",
+        daysToFirstHarvest: crop.targetHarvestStartDays,
+        harvestWindowDays: crop.targetHarvestWindowDays ?? undefined,
+      },
+    });
+
+    await db.seasonRule.upsert({
+      where: { id: `seed-season-${species.id}` },
+      update: {},
+      create: {
+        id: `seed-season-${species.id}`,
+        profileId: profile.id,
+        locationOrClimateZone: "Palmwoods hinterland",
+        activityType: "SOW",
+        startMonth: crop.sowMonthStart,
+        endMonth: crop.sowMonthEnd,
+        suitability: "PREFERRED",
+        notes: `Preferred sowing window for ${crop.commonName.toLowerCase()} in the subtropical hinterland.`,
+      },
+    });
+  }
+
   // ---------- Poultry: species / breeds / methods / profiles / workflow ----------
 
   const chickenSpecies = await db.species.upsert({
