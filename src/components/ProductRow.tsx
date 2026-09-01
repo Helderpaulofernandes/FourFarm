@@ -18,6 +18,7 @@ type Product = {
   varietyBreedId: string | null;
   profileId: string | null;
   publicVisible: boolean;
+  isSubscription: boolean;
   varietyBreed: { name: string; species: { commonName: string } } | null;
 };
 
@@ -40,6 +41,7 @@ export function ProductRow({ product, varieties }: { product: Product; varieties
           varietyBreedId: product.varietyBreedId ?? undefined,
           profileId: product.profileId ?? undefined,
           publicVisible: product.publicVisible,
+          isSubscription: product.isSubscription,
         }}
         onDone={() => setEditing(false)}
       />
@@ -55,6 +57,7 @@ export function ProductRow({ product, varieties }: { product: Product; varieties
           {product.stockOnHand != null && ` · ${product.stockOnHand} in stock`}
           {product.varietyBreed && ` · ${product.varietyBreed.species.commonName} — ${product.varietyBreed.name}`}
           {product.publicVisible && <span className="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700">public</span>}
+          {product.isSubscription && <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">CSA</span>}
         </div>
       </div>
       <button onClick={() => setEditing(true)} className="h-9 rounded-lg border border-stone-300 px-3 text-sm font-medium text-stone-700">

@@ -29,6 +29,7 @@ export async function listPublicProducts() {
       standardPackSize: true,
       price: true,
       primaryMediaUrl: true,
+      isSubscription: true,
       varietyBreed: { select: { name: true, species: { select: { commonName: true } } } },
     },
     orderBy: { name: "asc" },
@@ -46,6 +47,7 @@ export async function getPublicProduct(id: string) {
       standardPackSize: true,
       price: true,
       primaryMediaUrl: true,
+      isSubscription: true,
       varietyBreed: {
         select: { name: true, publicDescription: true, species: { select: { commonName: true } } },
       },

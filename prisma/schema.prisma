@@ -207,6 +207,24 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum CSAFrequency {
+  WEEKLY
+  FORTNIGHTLY
+}
+
+enum CSASubscriptionStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+}
+
+enum BookingStatus {
+  PENDING
+  APPROVED
+  DECLINED
+  CANCELLED
+}
+
 // ---------- Foundation ----------
 
 model Tenant {
@@ -241,6 +259,8 @@ model Farm {
   activities        Activity[]
   customers         Customer[]
   orders            Order[]
+  csaSubscriptions  CSASubscription[]
+  bookings          PickYourOwnBooking[]
 
   @@index([tenantId])
 }
@@ -797,9 +817,13 @@ model Product {
   // null = untracked/unlimited, the default for every existing product so
   // nothing already listed changes behaviour until an admin opts in.
   stockOnHand      Int?
+  // CSA-box-eligible — the public product page offers a recurring
+  // subscribe flow instead of one-off "Add to cart" for these.
+  isSubscription   Boolean       @default(false)
   active           Boolean       @default(true)
 
-  orderItems OrderItem[]
+  orderItems        OrderItem[]
+  csaSubscriptions  CSASubscription[]
 
   @@unique([farmId, sku])
   @@index([farmId])
@@ -808,15 +832,20 @@ model Product {
 // ---------- Commerce (guest checkout, no forced accounts) ----------
 
 model Customer {
-  id        String   @id @default(cuid())
-  farmId    String
-  farm      Farm     @relation(fields: [farmId], references: [id])
-  email     String
-  name      String
-  phone     String?
-  createdAt DateTime @default(now())
+  id               String   @id @default(cuid())
+  farmId           String
+  farm             Farm     @relation(fields: [farmId], references: [id])
+  email            String
+  name             String
+  phone            String?
+  // Set on first subscription checkout, reused for every later billing
+  // portal link — Stripe hosts subscription management, we just point to it.
+  stripeCustomerId String?
+  createdAt        DateTime @default(now())
 
-  orders Order[]
+  orders            Order[]
+  csaSubscriptions  CSASubscription[]
+  bookings          PickYourOwnBooking[]
 
   @@unique([farmId, email])
   @@index([farmId])
@@ -859,4 +888,39 @@ model OrderItem {
 
   @@index([orderId])
   @@index([productId])
+}
+
+model CSASubscription {
+  id                   String                @id @default(cuid())
+  farmId               String
+  farm                 Farm                  @relation(fields: [farmId], references: [id])
+  customerId           String
+  customer             Customer              @relation(fields: [customerId], references: [id])
+  productId            String
+  product              Product               @relation(fields: [productId], references: [id])
+  frequency            CSAFrequency
+  status               CSASubscriptionStatus @default(ACTIVE)
+  stripeSubscriptionId String?               @unique
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+
+  @@index([farmId])
+  @@index([customerId])
+}
+
+model PickYourOwnBooking {
+  id            String        @id @default(cuid())
+  farmId        String
+  farm          Farm          @relation(fields: [farmId], references: [id])
+  customerId    String
+  customer      Customer      @relation(fields: [customerId], references: [id])
+  requestedDate DateTime
+  partySize     Int
+  notes         String?
+  status        BookingStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([farmId])
+  @@index([customerId])
 }

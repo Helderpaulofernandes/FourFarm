@@ -30,6 +30,7 @@ export function ProductForm({
   const [varietyBreedId, setVarietyBreedId] = useState(existing?.varietyBreedId ?? "");
   const [profileId, setProfileId] = useState(existing?.profileId ?? "");
   const [publicVisible, setPublicVisible] = useState(existing?.publicVisible ?? false);
+  const [isSubscription, setIsSubscription] = useState(existing?.isSubscription ?? false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -52,6 +53,7 @@ export function ProductForm({
         varietyBreedId: varietyBreedId || undefined,
         profileId: profileId || undefined,
         publicVisible,
+        isSubscription,
       };
       if (existing) {
         await updateProduct(existing.id, data);
@@ -67,6 +69,7 @@ export function ProductForm({
         setVarietyBreedId("");
         setProfileId("");
         setPublicVisible(false);
+        setIsSubscription(false);
         setOpen(false);
       }
       onDone?.();
@@ -157,6 +160,9 @@ export function ProductForm({
         </div>
         <label className="col-span-2 flex items-center gap-2 text-sm text-stone-700">
           <input type="checkbox" checked={publicVisible} onChange={(e) => setPublicVisible(e.target.checked)} /> Visible in public store
+        </label>
+        <label className="col-span-2 flex items-center gap-2 text-sm text-stone-700">
+          <input type="checkbox" checked={isSubscription} onChange={(e) => setIsSubscription(e.target.checked)} /> Available as a CSA subscription (weekly/fortnightly box)
         </label>
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}

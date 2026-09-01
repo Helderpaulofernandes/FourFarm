@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getPublicProduct } from "@/server/actions/products";
 import { formatMoney } from "@/lib/format";
 import { AddToCartButton } from "@/components/AddToCartButton";
+import { SubscribeButton } from "@/components/SubscribeButton";
 
 export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -28,7 +29,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         </span>
       </div>
 
-      {product.price != null && (
+      {product.price != null && product.isSubscription && <SubscribeButton productId={product.id} />}
+      {product.price != null && !product.isSubscription && (
         <AddToCartButton productId={product.id} name={product.name} price={product.price} saleUnit={product.saleUnit} />
       )}
 

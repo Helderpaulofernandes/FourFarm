@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getStripe } from "@/lib/stripe";
 
-// Only checkout.session.completed is handled for v1 — an abandoned or
-// expired checkout simply leaves the order PENDING, visible and cancellable
-// from /admin/orders. No need to react to every Stripe event on the first pass.
+// checkout.session.completed handles both one-time order payments (mode
+// "payment") and the first CSA subscription payment (mode "subscription");
+// customer.subscription.deleted syncs a Stripe-portal cancellation back to
+// our CSASubscription row. An abandoned/expired checkout simply leaves the
+// order PENDING — no need to react to every Stripe event on the first pass.
 export async function POST(request: Request) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!secret) {
@@ -26,27 +28,49 @@ export async function POST(request: Request) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
-    const orderId = session.metadata?.orderId;
-    if (orderId) {
-      const order = await db.order.findUnique({ where: { id: orderId }, include: { items: true } });
-      if (order && order.status === "PENDING") {
-        await db.$transaction([
-          db.order.update({
-            where: { id: order.id },
-            data: {
-              status: "PAID",
-              stripePaymentIntentId: typeof session.payment_intent === "string" ? session.payment_intent : undefined,
-            },
-          }),
-          ...order.items.map((item) =>
-            db.product.updateMany({
-              where: { id: item.productId, stockOnHand: { not: null } },
-              data: { stockOnHand: { decrement: item.quantity } },
+
+    if (session.mode === "payment") {
+      const orderId = session.metadata?.orderId;
+      if (orderId) {
+        const order = await db.order.findUnique({ where: { id: orderId }, include: { items: true } });
+        if (order && order.status === "PENDING") {
+          await db.$transaction([
+            db.order.update({
+              where: { id: order.id },
+              data: {
+                status: "PAID",
+                stripePaymentIntentId: typeof session.payment_intent === "string" ? session.payment_intent : undefined,
+              },
             }),
-          ),
-        ]);
+            ...order.items.map((item) =>
+              db.product.updateMany({
+                where: { id: item.productId, stockOnHand: { not: null } },
+                data: { stockOnHand: { decrement: item.quantity } },
+              }),
+            ),
+          ]);
+        }
       }
     }
+
+    if (session.mode === "subscription" && typeof session.subscription === "string") {
+      const { customerId, productId, frequency } = session.metadata ?? {};
+      if (customerId && productId && (frequency === "WEEKLY" || frequency === "FORTNIGHTLY")) {
+        await db.cSASubscription.upsert({
+          where: { stripeSubscriptionId: session.subscription },
+          update: {},
+          create: { farmId: (await db.customer.findUniqueOrThrow({ where: { id: customerId } })).farmId, customerId, productId, frequency, stripeSubscriptionId: session.subscription },
+        });
+      }
+    }
+  }
+
+  if (event.type === "customer.subscription.deleted") {
+    const subscription = event.data.object;
+    await db.cSASubscription.updateMany({
+      where: { stripeSubscriptionId: subscription.id },
+      data: { status: "CANCELLED" },
+    });
   }
 
   return NextResponse.json({ received: true });

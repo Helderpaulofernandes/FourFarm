@@ -14,5 +14,6 @@ export const productSchema = z.object({
   varietyBreedId: z.string().optional(),
   profileId: z.string().optional(),
   publicVisible: z.boolean().default(false),
+  isSubscription: z.boolean().default(false),
 });
 export type ProductInput = z.infer<typeof productSchema>;
