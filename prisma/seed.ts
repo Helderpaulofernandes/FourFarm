@@ -782,6 +782,39 @@ async function main() {
     });
   }
 
+  // Dedicated layer fleet: 3 tractors x 100 birds, rotated across pasture daily.
+  for (let n = 1; n <= 3; n++) {
+    await db.productionArea.upsert({
+      where: { farmId_code: { farmId: farm.id, code: `LAYER-TRACTOR-${n}` } },
+      update: { name: `Layer Tractor ${n}`, capacity: 100 },
+      create: {
+        farmId: farm.id,
+        areaType: "TRACTOR",
+        code: `LAYER-TRACTOR-${n}`,
+        name: `Layer Tractor ${n}`,
+        capacity: 100,
+        capacityUnit: "birds",
+      },
+    });
+  }
+
+  // Dedicated broiler fleet: 2 tractors x 30 birds, separate from the original
+  // generic Tractor 1/2 (which already carry earlier test-batch history).
+  for (let n = 1; n <= 2; n++) {
+    await db.productionArea.upsert({
+      where: { farmId_code: { farmId: farm.id, code: `BROILER-TRACTOR-${n}` } },
+      update: { name: `Broiler Tractor ${n}`, capacity: 30 },
+      create: {
+        farmId: farm.id,
+        areaType: "TRACTOR",
+        code: `BROILER-TRACTOR-${n}`,
+        name: `Broiler Tractor ${n}`,
+        capacity: 30,
+        capacityUnit: "birds",
+      },
+    });
+  }
+
   await db.productionArea.upsert({
     where: { farmId_code: { farmId: farm.id, code: "COOP-1" } },
     update: {},
