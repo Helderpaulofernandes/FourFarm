@@ -24,6 +24,9 @@ type Profile = {
   treeProfile: {
     canopyStratum: string;
     successionalStage: string;
+    successionWave: number | null;
+    role: string;
+    climateSuitability: string;
     withinRowSpacingM: number | null;
     betweenRowSpacingM: number | null;
     yearsToFirstYield: number | null;
@@ -90,6 +93,10 @@ export function VarietyRow({ variety, speciesOptions }: { variety: Variety; spec
             <span>
               {" "}
               · {p.treeProfile.canopyStratum.toLowerCase().replace("_", " ")} canopy · {p.treeProfile.successionalStage.toLowerCase()}
+              {p.treeProfile.successionWave ? ` (wave ${p.treeProfile.successionWave})` : ""}
+              {" · "}
+              {p.treeProfile.role.toLowerCase()}
+              {p.treeProfile.climateSuitability !== "SUBTROPICAL" ? ` · ${p.treeProfile.climateSuitability.toLowerCase()}` : ""}
               {p.treeProfile.withinRowSpacingM && p.treeProfile.betweenRowSpacingM
                 ? ` · ${p.treeProfile.withinRowSpacingM}×${p.treeProfile.betweenRowSpacingM}m spacing`
                 : ""}

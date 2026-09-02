@@ -181,6 +181,9 @@ export async function createTreeProfile(input: TreeProfileInput) {
         create: {
           canopyStratum: data.canopyStratum,
           successionalStage: data.successionalStage,
+          successionWave: data.successionWave,
+          role: data.role,
+          climateSuitability: data.climateSuitability,
           matureHeightM: data.matureHeightM,
           matureSpreadM: data.matureSpreadM,
           withinRowSpacingM: data.withinRowSpacingM,
@@ -209,6 +212,9 @@ export async function updateTreeProfile(profileId: string, input: TreeProfileInp
         update: {
           canopyStratum: data.canopyStratum,
           successionalStage: data.successionalStage,
+          successionWave: data.successionWave,
+          role: data.role,
+          climateSuitability: data.climateSuitability,
           matureHeightM: data.matureHeightM,
           matureSpreadM: data.matureSpreadM,
           withinRowSpacingM: data.withinRowSpacingM,

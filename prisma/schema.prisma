@@ -86,6 +86,21 @@ enum SuccessionalStage {
   CLIMAX
 }
 
+// "Biomass" (pruned for mulch, never harvested) vs "target" (grown for the
+// harvest) is a primary organizing concept in syntropic design, on par with
+// stratum and succession stage — not just an incidental chopAndDropCandidate flag.
+enum VegetationRole {
+  BIOMASS
+  TARGET
+  BOTH
+}
+
+enum ClimateSuitability {
+  TROPICAL
+  SUBTROPICAL
+  TEMPERATE
+}
+
 enum MaturityBasis {
   FROM_SOWING
   FROM_TRANSPLANT
@@ -525,6 +540,15 @@ model TreeProfile {
 
   canopyStratum           CanopyStratum
   successionalStage       SuccessionalStage
+  // Only meaningful when successionalStage = PLACENTA — the book's design
+  // table splits placenta into two functionally distinct waves (I: fast
+  // annual vegetables, II: slower perennial starters like banana/cassava).
+  successionWave          Int?
+  // Defaults exist only so the migration applies cleanly against the 2
+  // existing rows (Banana, Pigeon Pea) — seed.ts immediately backfills both
+  // with real values, every new row sets them explicitly.
+  role                    VegetationRole    @default(TARGET)
+  climateSuitability      ClimateSuitability @default(SUBTROPICAL)
   matureHeightM           Float?
   matureSpreadM           Float?
   withinRowSpacingM       Float?

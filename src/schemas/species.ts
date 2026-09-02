@@ -59,6 +59,8 @@ export type PoultryProfileInput = z.infer<typeof poultryProfileSchema>;
 
 export const canopyStrata = ["EMERGENT", "HIGH", "MEDIUM", "LOW", "SHRUB", "GROUND_COVER", "CLIMBER"] as const;
 export const successionalStages = ["PLACENTA", "SECONDARY", "CLIMAX"] as const;
+export const vegetationRoles = ["BIOMASS", "TARGET", "BOTH"] as const;
+export const climateSuitabilities = ["TROPICAL", "SUBTROPICAL", "TEMPERATE"] as const;
 
 export const treeProfileSchema = z.object({
   varietyBreedId: z.string().min(1, "Required"),
@@ -66,6 +68,9 @@ export const treeProfileSchema = z.object({
   name: z.string().min(1, "Required"),
   canopyStratum: z.enum(canopyStrata),
   successionalStage: z.enum(successionalStages),
+  successionWave: optionalPositiveInt(),
+  role: z.enum(vegetationRoles),
+  climateSuitability: z.enum(climateSuitabilities),
   matureHeightM: optionalPositiveNumber(),
   matureSpreadM: optionalPositiveNumber(),
   withinRowSpacingM: optionalPositiveNumber(),

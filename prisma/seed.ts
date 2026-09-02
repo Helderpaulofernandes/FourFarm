@@ -679,11 +679,13 @@ async function main() {
 
   await db.treeProfile.upsert({
     where: { profileId: bananaProfile.id },
-    update: {},
+    update: { role: "BOTH", climateSuitability: "SUBTROPICAL" },
     create: {
       profileId: bananaProfile.id,
       canopyStratum: "LOW",
       successionalStage: "SECONDARY",
+      role: "BOTH",
+      climateSuitability: "SUBTROPICAL",
       matureHeightM: 3.5,
       matureSpreadM: 2.5,
       withinRowSpacingM: 2,
@@ -727,6 +729,179 @@ async function main() {
       update: {},
       create: { id: `seed-task-banana-${task.sequence}`, workflowTemplateId: bananaWorkflow.id, ...task },
     });
+  }
+
+  // ---------- Expanded forest species database: 37 species across all 4 strata ----------
+  // Loop-driven like the market-garden crop expansion above. Selected for genuine SE
+  // Queensland hinterland suitability — preferring native/regionally-proven species over
+  // the (tropical, Haiti-specific) reference guide's own list where a better local
+  // equivalent exists (macadamia is literally native to this region). Two genuinely
+  // tropical climax species (cacao, jackfruit) are included but flagged TROPICAL —
+  // frost-marginal at Palmwoods' elevation, worth a sheltered trial, not a safe bet.
+  type ForestSpecies = {
+    commonName: string;
+    scientificName: string;
+    family: string;
+    varietyName: string;
+    publicDescription: string;
+    canopyStratum: (typeof canopyStrata)[number];
+    successionalStage: (typeof successionalStages)[number];
+    successionWave: 1 | 2 | null;
+    role: (typeof vegetationRoles)[number];
+    climateSuitability: (typeof climateSuitabilities)[number];
+    matureHeightM: number;
+    matureSpreadM: number;
+    withinRowSpacingM: number;
+    betweenRowSpacingM: number;
+    yearsToFirstYield: number;
+    nitrogenFixer: boolean;
+    chopAndDropCandidate: boolean;
+    pruningFrequencyMonths: number | null;
+  };
+  const canopyStrata = ["EMERGENT", "HIGH", "MEDIUM", "LOW", "SHRUB", "GROUND_COVER", "CLIMBER"] as const;
+  const successionalStages = ["PLACENTA", "SECONDARY", "CLIMAX"] as const;
+  const vegetationRoles = ["BIOMASS", "TARGET", "BOTH"] as const;
+  const climateSuitabilities = ["TROPICAL", "SUBTROPICAL", "TEMPERATE"] as const;
+
+  const forestSpecies: ForestSpecies[] = [
+    // Emergent
+    { commonName: "Silky Oak", scientificName: "Grevillea robusta", family: "Proteaceae", varietyName: "Silky Oak", publicDescription: "A fast-growing native nurse tree, valued for timber and its nectar-rich flowers.", canopyStratum: "EMERGENT", successionalStage: "SECONDARY", successionWave: null, role: "BOTH", climateSuitability: "SUBTROPICAL", matureHeightM: 30, matureSpreadM: 8, withinRowSpacingM: 6, betweenRowSpacingM: 8, yearsToFirstYield: 8, nitrogenFixer: false, chopAndDropCandidate: false, pruningFrequencyMonths: null },
+    { commonName: "Pecan", scientificName: "Carya illinoinensis", family: "Juglandaceae", varietyName: "Pecan", publicDescription: "A large, long-lived nut tree that eventually dominates the emergent canopy.", canopyStratum: "EMERGENT", successionalStage: "CLIMAX", successionWave: null, role: "TARGET", climateSuitability: "SUBTROPICAL", matureHeightM: 25, matureSpreadM: 12, withinRowSpacingM: 8, betweenRowSpacingM: 10, yearsToFirstYield: 6, nitrogenFixer: false, chopAndDropCandidate: false, pruningFrequencyMonths: 12 },
+    { commonName: "Flooded Gum", scientificName: "Eucalyptus grandis", family: "Myrtaceae", varietyName: "Flooded Gum", publicDescription: "A fast-growing native eucalypt grown for timber, shade and heavy biomass.", canopyStratum: "EMERGENT", successionalStage: "SECONDARY", successionWave: null, role: "BIOMASS", climateSuitability: "SUBTROPICAL", matureHeightM: 40, matureSpreadM: 10, withinRowSpacingM: 6, betweenRowSpacingM: 8, yearsToFirstYield: 3, nitrogenFixer: false, chopAndDropCandidate: true, pruningFrequencyMonths: 12 },
+    { commonName: "Mango", scientificName: "Mangifera indica", family: "Anacardiaceae", varietyName: "Kensington Pride", publicDescription: "A long-lived emergent fruit tree, one of the most reliable subtropical mangoes.", canopyStratum: "EMERGENT", successionalStage: "CLIMAX", successionWave: null, role: "TARGET", climateSuitability: "SUBTROPICAL", matureHeightM: 15, matureSpreadM: 10, withinRowSpacingM: 6, betweenRowSpacingM: 8, yearsToFirstYield: 4, nitrogenFixer: false, chopAndDropCandidate: false, pruningFrequencyMonths: null },
+    // High
+    { commonName: "Macadamia", scientificName: "Macadamia integrifolia", family: "Proteaceae", varietyName: "Macadamia", publicDescription: "A native SE Queensland nut tree, right at home in the hinterland it evolved in.", canopyStratum: "HIGH", successionalStage: "CLIMAX", successionWave: null, role: "TARGET", climateSuitability: "SUBTROPICAL", matureHeightM: 12, matureSpreadM: 8, withinRowSpacingM: 5, betweenRowSpacingM: 6, yearsToFirstYield: 5, nitrogenFixer: false, chopAndDropCandidate: false, pruningFrequencyMonths: null },
+    { commonName: "Avocado", scientificName: "Persea americana", family: "Lauraceae", varietyName: "Hass", publicDescription: "A reliable subtropical avocado, grown for its rich, creamy fruit.", canopyStratum: "HIGH", successionalStage: "CLIMAX", successionWave: null, role: "TARGET", climateSuitability: "SUBTROPICAL", matureHeightM: 10, matureSpreadM: 7, withinRowSpacingM: 5, betweenRowSpacingM: 6, yearsToFirstYield: 4, nitrogenFixer: false, chopAndDropCandidate: false, pruningFrequencyMonths: null },
+    { commonName: "Tagasaste", scientificName: "Chamaecytisus palmensis", family: "Fabaceae", varietyName: "Tree Lucerne", publicDescription: "A fast-growing nitrogen-fixing legume, chopped repeatedly for mulch and fodder.", canopyStratum: "HIGH", successionalStage: "PLACENTA", successionWave: 1, role: "BIOMASS", climateSuitability: "SUBTROPICAL", matureHeightM: 4, matureSpreadM: 3, withinRowSpacingM: 1.5, betweenRowSpacingM: 3, yearsToFirstYield: 1, nitrogenFixer: true, chopAndDropCandidate: true, pruningFrequencyMonths: 4 },
+    { commonName: "Leucaena", scientificName: "Leucaena leucocephala", family: "Fabaceae", varietyName: "Leucaena", publicDescription: "A vigorous nitrogen-fixing biomass tree, cut hard and often for mulch.", canopyStratum: "HIGH", successionalStage: "PLACENTA", successionWave: 1, role: "BIOMASS", climateSuitability: "SUBTROPICAL", matureHeightM: 6, matureSpreadM: 3, withinRowSpacingM: 1.5, betweenRowSpacingM: 3, yearsToFirstYield: 1, nitrogenFixer: true, chopAndDropCandidate: true, pruningFrequencyMonths: 4 },
+    { commonName: "Gliricidia", scientificName: "Gliricidia sepium", family: "Fabaceae", varietyName: "Gliricidia", publicDescription: "A classic syntropic biomass tree, fixing nitrogen and regrowing fast after hard pruning.", canopyStratum: "HIGH", successionalStage: "PLACENTA", successionWave: 1, role: "BIOMASS", climateSuitability: "SUBTROPICAL", matureHeightM: 6, matureSpreadM: 3, withinRowSpacingM: 1.5, betweenRowSpacingM: 3, yearsToFirstYield: 1, nitrogenFixer: true, chopAndDropCandidate: true, pruningFrequencyMonths: 4 },
+    { commonName: "Ice-cream Bean", scientificName: "Inga edulis", family: "Fabaceae", varietyName: "Inga", publicDescription: "A nitrogen-fixing shade tree with sweet, edible pods, classic in syntropic systems.", canopyStratum: "HIGH", successionalStage: "SECONDARY", successionWave: null, role: "BOTH", climateSuitability: "SUBTROPICAL", matureHeightM: 10, matureSpreadM: 8, withinRowSpacingM: 4, betweenRowSpacingM: 5, yearsToFirstYield: 3, nitrogenFixer: true, chopAndDropCandidate: true, pruningFrequencyMonths: 6 },
+    { commonName: "Tamarind", scientificName: "Tamarindus indica", family: "Fabaceae", varietyName: "Tamarind", publicDescription: "A long-lived, drought-hardy tree valued for its tangy fruit pulp.", canopyStratum: "HIGH", successionalStage: "CLIMAX", successionWave: null, role: "TARGET", climateSuitability: "SUBTROPICAL", matureHeightM: 15, matureSpreadM: 10, withinRowSpacingM: 6, betweenRowSpacingM: 8, yearsToFirstYield: 6, nitrogenFixer: false, chopAndDropCandidate: false, pruningFrequencyMonths: null },
+    { commonName: "Moringa", scientificName: "Moringa oleifera", family: "Moringaceae", varietyName: "Moringa", publicDescription: "An extremely fast-growing tree with edible leaves, also cut hard for biomass.", canopyStratum: "HIGH", successionalStage: "PLACENTA", successionWave: 1, role: "BOTH", climateSuitability: "SUBTROPICAL", matureHeightM: 8, matureSpreadM: 4, withinRowSpacingM: 2, betweenRowSpacingM: 3, yearsToFirstYield: 0.5, nitrogenFixer: false, chopAndDropCandidate: true, pruningFrequencyMonths: 3 },
+    { commonName: "Jackfruit", scientificName: "Artocarpus heterophyllus", family: "Moraceae", varietyName: "Jackfruit", publicDescription: "A large tropical fruit tree — frost-marginal at Palmwoods' elevation, worth trialling in a sheltered spot.", canopyStratum: "HIGH", successionalStage: "CLIMAX", successionWave: null, role: "TARGET", climateSuitability: "TROPICAL", matureHeightM: 15, matureSpreadM: 8, withinRowSpacingM: 6, betweenRowSpacingM: 8, yearsToFirstYield: 4, nitrogenFixer: false, chopAndDropCandidate: false, pruningFrequencyMonths: null },
+    // Medium
+    { commonName: "Custard Apple", scientificName: "Annona reticulata", family: "Annonaceae", varietyName: "Custard Apple", publicDescription: "A subtropical custard apple, producing sweet, creamy fruit in the medium stratum.", canopyStratum: "MEDIUM", successionalStage: "SECONDARY", successionWave: null, role: "TARGET", climateSuitability: "SUBTROPICAL", matureHeightM: 6, matureSpreadM: 5, withinRowSpacingM: 4, betweenRowSpacingM: 5, yearsToFirstYield: 3, nitrogenFixer: false, chopAndDropCandidate: false, pruningFrequencyMonths: null },
+    { commonName: "Mulberry", scientificName: "Morus nigra", family: "Moraceae", varietyName: "Black Mulberry", publicDescription: "A fast-fruiting mulberry that also regrows vigorously after a hard prune for mulch.", canopyStratum: "MEDIUM", successionalStage: "SECONDARY", successionWave: null, role: "BOTH", climateSuitability: "SUBTROPICAL", matureHeightM: 6, matureSpreadM: 5, withinRowSpacingM: 3, betweenRowSpacingM: 4, yearsToFirstYield: 2, nitrogenFixer: false, chopAndDropCandidate: true, pruningFrequencyMonths: 6 },
+    { commonName: "Tamarillo", scientificName: "Solanum betaceum", family: "Solanaceae", varietyName: "Tamarillo", publicDescription: "A short-lived, fast-fruiting tree tomato that bridges the placenta and secondary stages.", canopyStratum: "MEDIUM", successionalStage: "PLACENTA", successionWave: 2, role: "TARGET", climateSuitability: "SUBTROPICAL", matureHeightM: 3, matureSpreadM: 2, withinRowSpacingM: 2, betweenRowSpacingM: 2.5, yearsToFirstYield: 1.5, nitrogenFixer: false, chopAndDropCandidate: false, pruningFrequencyMonths: null },
+    { commonName: "Lemon", scientificName: "Citrus limon", family: "Rutaceae", varietyName: "Eureka", publicDescription: "A reliable, heavy-cropping lemon for the medium stratum.", canopyStratum: "MEDIUM", successionalStage: "SECONDARY", successionWave: null, role: "TARGET", climateSuitability: "SUBTROPICAL", matureHeightM: 4, matureSpreadM: 3, withinRowSpacingM: 3, betweenRowSpacingM: 4, yearsToFirstYield: 2, nitrogenFixer: false, chopAndDropCandidate: false, pruningFrequencyMonths: null },
+    { commonName: "Orange", scientificName: "Citrus sinensis", family: "Rutaceae", varietyName: "Washington Navel", publicDescription: "A classic sweet orange, needing full sun and space from taller neighbours.", canopyStratum: "MEDIUM", successionalStage: "SECONDARY", successionWave: null, role: "TARGET", climateSuitability: "SUBTROPICAL", matureHeightM: 4, matureSpreadM: 3, withinRowSpacingM: 3, betweenRowSpacingM: 4, yearsToFirstYield: 3, nitrogenFixer: false, chopAndDropCandidate: false, pruningFrequencyMonths: null },
+    { commonName: "Mandarin", scientificName: "Citrus reticulata", family: "Rutaceae", varietyName: "Imperial Mandarin", publicDescription: "An easy-peel mandarin, a reliable medium-stratum citrus.", canopyStratum: "MEDIUM", successionalStage: "CLIMAX", successionWave: null, role: "TARGET", climateSuitability: "SUBTROPICAL", matureHeightM: 4, matureSpreadM: 3, withinRowSpacingM: 3, betweenRowSpacingM: 4, yearsToFirstYield: 3, nitrogenFixer: false, chopAndDropCandidate: false, pruningFrequencyMonths: null },
+    { commonName: "Finger Lime", scientificName: "Citrus australasica", family: "Rutaceae", varietyName: "Finger Lime", publicDescription: "A native Australian citrus with caviar-like pearls of tart lime pulp.", canopyStratum: "MEDIUM", successionalStage: "CLIMAX", successionWave: null, role: "TARGET", climateSuitability: "SUBTROPICAL", matureHeightM: 3, matureSpreadM: 2, withinRowSpacingM: 2, betweenRowSpacingM: 3, yearsToFirstYield: 3, nitrogenFixer: false, chopAndDropCandidate: false, pruningFrequencyMonths: null },
+    { commonName: "Davidson's Plum", scientificName: "Davidsonia jerseyana", family: "Cunoniaceae", varietyName: "Davidson's Plum", publicDescription: "A native rainforest understory tree with tart, deep-purple fruit.", canopyStratum: "MEDIUM", successionalStage: "CLIMAX", successionWave: null, role: "TARGET", climateSuitability: "SUBTROPICAL", matureHeightM: 5, matureSpreadM: 3, withinRowSpacingM: 3, betweenRowSpacingM: 4, yearsToFirstYield: 3, nitrogenFixer: false, chopAndDropCandidate: false, pruningFrequencyMonths: null },
+    // Low
+    { commonName: "Coffee", scientificName: "Coffea arabica", family: "Rubiaceae", varietyName: "Arabica", publicDescription: "A shade-loving coffee, thriving in the low stratum beneath taller canopy.", canopyStratum: "LOW", successionalStage: "CLIMAX", successionWave: null, role: "TARGET", climateSuitability: "SUBTROPICAL", matureHeightM: 3, matureSpreadM: 2, withinRowSpacingM: 2, betweenRowSpacingM: 2.5, yearsToFirstYield: 3, nitrogenFixer: false, chopAndDropCandidate: false, pruningFrequencyMonths: null },
+    { commonName: "Cacao", scientificName: "Theobroma cacao", family: "Malvaceae", varietyName: "Cacao", publicDescription: "A true tropical understory tree — frost will damage or kill it at Palmwoods' elevation, so plant only in the most sheltered microclimate as a trial.", canopyStratum: "LOW", successionalStage: "CLIMAX", successionWave: null, role: "TARGET", climateSuitability: "TROPICAL", matureHeightM: 5, matureSpreadM: 3, withinRowSpacingM: 3, betweenRowSpacingM: 4, yearsToFirstYield: 3, nitrogenFixer: false, chopAndDropCandidate: false, pruningFrequencyMonths: null },
+    { commonName: "Lilly Pilly", scientificName: "Syzygium australe", family: "Myrtaceae", varietyName: "Lilly Pilly", publicDescription: "A native hedging and fruiting tree, tolerant of hard pruning.", canopyStratum: "LOW", successionalStage: "SECONDARY", successionWave: null, role: "BOTH", climateSuitability: "SUBTROPICAL", matureHeightM: 6, matureSpreadM: 4, withinRowSpacingM: 3, betweenRowSpacingM: 4, yearsToFirstYield: 2, nitrogenFixer: false, chopAndDropCandidate: true, pruningFrequencyMonths: 6 },
+    { commonName: "Midyim Berry", scientificName: "Austromyrtus dulcis", family: "Myrtaceae", varietyName: "Midyim Berry", publicDescription: "A low native shrub with sweet, speckled berries, thriving in dappled shade.", canopyStratum: "LOW", successionalStage: "CLIMAX", successionWave: null, role: "TARGET", climateSuitability: "SUBTROPICAL", matureHeightM: 1, matureSpreadM: 1, withinRowSpacingM: 1, betweenRowSpacingM: 1.5, yearsToFirstYield: 2, nitrogenFixer: false, chopAndDropCandidate: false, pruningFrequencyMonths: null },
+    { commonName: "Cherry Guava", scientificName: "Psidium cattleyanum", family: "Myrtaceae", varietyName: "Cherry Guava", publicDescription: "A hardy, fast-fruiting guava producing small, cherry-like fruit.", canopyStratum: "LOW", successionalStage: "SECONDARY", successionWave: null, role: "TARGET", climateSuitability: "SUBTROPICAL", matureHeightM: 3, matureSpreadM: 2, withinRowSpacingM: 2, betweenRowSpacingM: 3, yearsToFirstYield: 2, nitrogenFixer: false, chopAndDropCandidate: false, pruningFrequencyMonths: null },
+    { commonName: "Turmeric", scientificName: "Curcuma longa", family: "Zingiberaceae", varietyName: "Turmeric", publicDescription: "A rhizome grown in the shaded low layer, harvested annually.", canopyStratum: "LOW", successionalStage: "PLACENTA", successionWave: 1, role: "TARGET", climateSuitability: "SUBTROPICAL", matureHeightM: 1, matureSpreadM: 0.5, withinRowSpacingM: 0.3, betweenRowSpacingM: 0.4, yearsToFirstYield: 0.8, nitrogenFixer: false, chopAndDropCandidate: false, pruningFrequencyMonths: null },
+    { commonName: "Ginger", scientificName: "Zingiber officinale", family: "Zingiberaceae", varietyName: "Ginger", publicDescription: "A shade-tolerant rhizome crop, planted low beneath the developing canopy.", canopyStratum: "LOW", successionalStage: "PLACENTA", successionWave: 1, role: "TARGET", climateSuitability: "SUBTROPICAL", matureHeightM: 1, matureSpreadM: 0.5, withinRowSpacingM: 0.3, betweenRowSpacingM: 0.4, yearsToFirstYield: 0.8, nitrogenFixer: false, chopAndDropCandidate: false, pruningFrequencyMonths: null },
+    // Ground cover
+    { commonName: "Comfrey", scientificName: "Symphytum officinale", family: "Boraginaceae", varietyName: "Comfrey", publicDescription: "A deep-rooted dynamic accumulator, chopped repeatedly for nutrient-rich mulch.", canopyStratum: "GROUND_COVER", successionalStage: "PLACENTA", successionWave: 1, role: "BIOMASS", climateSuitability: "SUBTROPICAL", matureHeightM: 0.8, matureSpreadM: 0.8, withinRowSpacingM: 0.6, betweenRowSpacingM: 0.6, yearsToFirstYield: 0.5, nitrogenFixer: false, chopAndDropCandidate: true, pruningFrequencyMonths: 2 },
+    { commonName: "Queensland Arrowroot", scientificName: "Canna edulis", family: "Cannaceae", varietyName: "Arrowroot", publicDescription: "A vigorous ground-layer plant with an edible starchy rhizome and large biomass leaves.", canopyStratum: "GROUND_COVER", successionalStage: "PLACENTA", successionWave: 1, role: "BOTH", climateSuitability: "SUBTROPICAL", matureHeightM: 2, matureSpreadM: 1, withinRowSpacingM: 0.6, betweenRowSpacingM: 0.8, yearsToFirstYield: 0.8, nitrogenFixer: false, chopAndDropCandidate: true, pruningFrequencyMonths: 3 },
+    { commonName: "Vetiver", scientificName: "Chrysopogon zizanioides", family: "Poaceae", varietyName: "Vetiver", publicDescription: "A deep-rooted erosion-control grass, planted on contour and cut for mulch.", canopyStratum: "GROUND_COVER", successionalStage: "PLACENTA", successionWave: 1, role: "BIOMASS", climateSuitability: "SUBTROPICAL", matureHeightM: 1.5, matureSpreadM: 0.5, withinRowSpacingM: 0.3, betweenRowSpacingM: 0.3, yearsToFirstYield: 0.5, nitrogenFixer: false, chopAndDropCandidate: true, pruningFrequencyMonths: 3 },
+    { commonName: "Mexican Sunflower", scientificName: "Tithonia diversifolia", family: "Asteraceae", varietyName: "Tithonia", publicDescription: "A fast-growing dynamic accumulator shrub, cut hard at first flowering for mulch.", canopyStratum: "GROUND_COVER", successionalStage: "PLACENTA", successionWave: 1, role: "BIOMASS", climateSuitability: "SUBTROPICAL", matureHeightM: 2.5, matureSpreadM: 1.5, withinRowSpacingM: 1, betweenRowSpacingM: 1.5, yearsToFirstYield: 0.5, nitrogenFixer: false, chopAndDropCandidate: true, pruningFrequencyMonths: 3 },
+    // Climber
+    { commonName: "Passionfruit", scientificName: "Passiflora edulis", family: "Passifloraceae", varietyName: "Passionfruit", publicDescription: "A fast-fruiting vine trained onto trees or trellis in the early forest rows.", canopyStratum: "CLIMBER", successionalStage: "PLACENTA", successionWave: 2, role: "TARGET", climateSuitability: "SUBTROPICAL", matureHeightM: 3, matureSpreadM: 2, withinRowSpacingM: 2, betweenRowSpacingM: 3, yearsToFirstYield: 1, nitrogenFixer: false, chopAndDropCandidate: false, pruningFrequencyMonths: 6 },
+    { commonName: "Choko", scientificName: "Sechium edule", family: "Cucurbitaceae", varietyName: "Choko", publicDescription: "A vigorous climbing vine producing abundant fruit and heavy prunable growth.", canopyStratum: "CLIMBER", successionalStage: "PLACENTA", successionWave: 1, role: "BOTH", climateSuitability: "SUBTROPICAL", matureHeightM: 4, matureSpreadM: 3, withinRowSpacingM: 2, betweenRowSpacingM: 3, yearsToFirstYield: 0.5, nitrogenFixer: false, chopAndDropCandidate: true, pruningFrequencyMonths: 4 },
+    { commonName: "Dragon Fruit", scientificName: "Hylocereus undatus", family: "Cactaceae", varietyName: "Dragon Fruit", publicDescription: "A climbing cactus fruit, trained up a support tree or post in the forest row.", canopyStratum: "CLIMBER", successionalStage: "SECONDARY", successionWave: null, role: "TARGET", climateSuitability: "SUBTROPICAL", matureHeightM: 3, matureSpreadM: 1.5, withinRowSpacingM: 1.5, betweenRowSpacingM: 2, yearsToFirstYield: 1.5, nitrogenFixer: false, chopAndDropCandidate: false, pruningFrequencyMonths: null },
+    // Additional biomass trees (mentioned by name in the reference guide's own propagation chart)
+    { commonName: "Cassia", scientificName: "Senna siamea", family: "Fabaceae", varietyName: "Cassia", publicDescription: "A fast-growing nitrogen-fixing tree grown purely for chop-and-drop mulch.", canopyStratum: "HIGH", successionalStage: "PLACENTA", successionWave: 1, role: "BIOMASS", climateSuitability: "SUBTROPICAL", matureHeightM: 8, matureSpreadM: 4, withinRowSpacingM: 2, betweenRowSpacingM: 3, yearsToFirstYield: 1, nitrogenFixer: true, chopAndDropCandidate: true, pruningFrequencyMonths: 4 },
+    { commonName: "Albizia", scientificName: "Albizia lebbeck", family: "Fabaceae", varietyName: "Siris Tree", publicDescription: "A large nitrogen-fixing shade and biomass tree, a classic syntropic pioneer.", canopyStratum: "EMERGENT", successionalStage: "SECONDARY", successionWave: null, role: "BIOMASS", climateSuitability: "SUBTROPICAL", matureHeightM: 15, matureSpreadM: 8, withinRowSpacingM: 4, betweenRowSpacingM: 5, yearsToFirstYield: 2, nitrogenFixer: true, chopAndDropCandidate: true, pruningFrequencyMonths: 6 },
+  ];
+
+  for (const sp of forestSpecies) {
+    const species = await db.species.upsert({
+      where: { farmId_commonName: { farmId: farm.id, commonName: sp.commonName } },
+      update: {},
+      create: {
+        farmId: farm.id,
+        kingdom: "PLANT",
+        commonName: sp.commonName,
+        scientificName: sp.scientificName,
+        family: sp.family,
+        lifeCycle: "PERENNIAL",
+        primaryRole: sp.role === "BIOMASS" ? "Biomass" : sp.role === "BOTH" ? "Food / biomass" : "Food",
+      },
+    });
+
+    const variety = await db.varietyBreed.upsert({
+      where: { speciesId_name: { speciesId: species.id, name: sp.varietyName } },
+      update: {},
+      create: {
+        speciesId: species.id,
+        name: sp.varietyName,
+        recordType: "CULTIVAR",
+        publicDescription: sp.publicDescription,
+      },
+    });
+
+    const profile = await db.productionProfile.upsert({
+      where: { varietyBreedId_methodId_version: { varietyBreedId: variety.id, methodId: syntropicMethod.id, version: 1 } },
+      update: {},
+      create: {
+        varietyBreedId: variety.id,
+        methodId: syntropicMethod.id,
+        name: `${sp.varietyName} forest row profile`,
+        version: 1,
+        nurseryRequired: false,
+        targetHarvestStartDays: Math.round(sp.yearsToFirstYield * 365),
+        sourceType: "OWN_TRIAL",
+        confidenceLevel: "ESTIMATED",
+      },
+    });
+
+    const treeData = {
+      canopyStratum: sp.canopyStratum,
+      successionalStage: sp.successionalStage,
+      successionWave: sp.successionWave ?? undefined,
+      role: sp.role,
+      climateSuitability: sp.climateSuitability,
+      matureHeightM: sp.matureHeightM,
+      matureSpreadM: sp.matureSpreadM,
+      withinRowSpacingM: sp.withinRowSpacingM,
+      betweenRowSpacingM: sp.betweenRowSpacingM,
+      yearsToFirstYield: sp.yearsToFirstYield,
+      nitrogenFixer: sp.nitrogenFixer,
+      chopAndDropCandidate: sp.chopAndDropCandidate,
+      pruningFrequencyMonths: sp.pruningFrequencyMonths ?? undefined,
+    };
+    await db.treeProfile.upsert({
+      where: { profileId: profile.id },
+      update: treeData,
+      create: { profileId: profile.id, ...treeData },
+    });
+  }
+
+  // Fix: Pigeon Pea was created earlier via the admin UI, before the Forest
+  // module's TreeProfileForm existed, and defaulted to the wrong method
+  // ("No-dig intensive bed" instead of "Syntropic agroforestry").
+  const pigeonPeaVariety = await db.varietyBreed.findFirst({
+    where: { name: "Common Pigeon Pea", species: { farmId: farm.id } },
+  });
+  if (pigeonPeaVariety) {
+    const pigeonPeaProfile = await db.productionProfile.findFirst({
+      where: { varietyBreedId: pigeonPeaVariety.id },
+      include: { treeProfile: true },
+    });
+    if (pigeonPeaProfile && pigeonPeaProfile.methodId !== syntropicMethod.id) {
+      await db.productionProfile.update({
+        where: { id: pigeonPeaProfile.id },
+        data: { methodId: syntropicMethod.id, nurseryRequired: false },
+      });
+    }
+    if (pigeonPeaProfile?.treeProfile) {
+      await db.treeProfile.update({
+        where: { profileId: pigeonPeaProfile.id },
+        data: {
+          role: "BOTH",
+          climateSuitability: "SUBTROPICAL",
+          nitrogenFixer: true,
+          chopAndDropCandidate: true,
+          successionWave: 1,
+        },
+      });
+    }
   }
 
   // ---------- Production areas: nursery benches + beds ----------

@@ -27,6 +27,8 @@ export function TreeProfileForm({ varieties, methods }: { varieties: VarietyOpti
       methodId: methods[0]?.id,
       canopyStratum: "LOW",
       successionalStage: "SECONDARY",
+      role: "TARGET",
+      climateSuitability: "SUBTROPICAL",
       nitrogenFixer: false,
       chopAndDropCandidate: false,
     },
@@ -101,6 +103,26 @@ export function TreeProfileForm({ varieties, methods }: { varieties: VarietyOpti
             <option value="SECONDARY">Secondary</option>
             <option value="CLIMAX">Climax</option>
           </select>
+        </div>
+        <div>
+          <label className="text-sm font-medium text-stone-700">Role</label>
+          <select {...register("role")} className="mt-1 h-11 w-full rounded-lg border border-stone-300 px-3">
+            <option value="TARGET">Target (grown for harvest)</option>
+            <option value="BIOMASS">Biomass (chop-and-drop only)</option>
+            <option value="BOTH">Both</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-sm font-medium text-stone-700">Climate suitability</label>
+          <select {...register("climateSuitability")} className="mt-1 h-11 w-full rounded-lg border border-stone-300 px-3">
+            <option value="SUBTROPICAL">Subtropical</option>
+            <option value="TROPICAL">Tropical (frost-marginal here)</option>
+            <option value="TEMPERATE">Temperate</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-sm font-medium text-stone-700">Succession wave (placenta only)</label>
+          <input type="number" min={1} max={2} {...register("successionWave")} placeholder="1 or 2" className="mt-1 h-11 w-full rounded-lg border border-stone-300 px-3" />
         </div>
         <div>
           <label className="text-sm font-medium text-stone-700">Mature height (m)</label>
