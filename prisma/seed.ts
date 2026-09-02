@@ -904,6 +904,67 @@ async function main() {
     }
   }
 
+  // ---------- Forest-row B-area companions ----------
+  // Placenta-stage members of a syntropic consortium are often literally the
+  // same annual vegetables already in the market garden (the reference guide's
+  // own design table uses tomato, cabbage, pumpkin, sweet potato, etc. as
+  // Placenta I/II members) — not a new species, just a second ProductionProfile
+  // for the same VarietyBreed under the Syntropic method, reusing its existing
+  // CropProfile numbers rather than re-typing them. These stay CropProfile, not
+  // TreeProfile — annual vegetables aren't trees, regardless of which row they
+  // grow in.
+  // Roughly Placenta I (fast annuals): Roma, Sugarloaf, Green Sprouting, Black
+  // Beauty Eggplant, Queensland Blue, Butterhead, Red Noodle. Placenta II
+  // (slower starters, alongside Banana/Pigeon Pea above): Beauregard, Cassava.
+  const bAreaCompanionVarieties = [
+    "Roma",
+    "Sugarloaf",
+    "Green Sprouting",
+    "Black Beauty Eggplant",
+    "Queensland Blue",
+    "Butterhead",
+    "Red Noodle",
+    "Beauregard",
+    "Cassava",
+  ];
+
+  for (const varietyName of bAreaCompanionVarieties) {
+    const variety = await db.varietyBreed.findFirst({
+      where: { name: varietyName, species: { farmId: farm.id } },
+    });
+    if (!variety) continue;
+
+    const sourceProfile = await db.productionProfile.findFirst({
+      where: { varietyBreedId: variety.id, cropProfile: { isNot: null } },
+      include: { cropProfile: true },
+    });
+    if (!sourceProfile?.cropProfile) continue;
+
+    const bAreaProfile = await db.productionProfile.upsert({
+      where: { varietyBreedId_methodId_version: { varietyBreedId: variety.id, methodId: syntropicMethod.id, version: 1 } },
+      update: {},
+      create: {
+        varietyBreedId: variety.id,
+        methodId: syntropicMethod.id,
+        name: `${varietyName} forest row B-area profile`,
+        version: 1,
+        nurseryRequired: sourceProfile.nurseryRequired,
+        targetNurseryDays: sourceProfile.targetNurseryDays,
+        targetHarvestStartDays: sourceProfile.targetHarvestStartDays,
+        targetHarvestWindowDays: sourceProfile.targetHarvestWindowDays,
+        sourceType: "OWN_TRIAL",
+        confidenceLevel: "ESTIMATED",
+      },
+    });
+
+    const { id: _id, profileId: _profileId, ...cropFields } = sourceProfile.cropProfile;
+    await db.cropProfile.upsert({
+      where: { profileId: bAreaProfile.id },
+      update: {},
+      create: { profileId: bAreaProfile.id, ...cropFields },
+    });
+  }
+
   // ---------- Production areas: nursery benches + beds ----------
 
   for (let n = 1; n <= 2; n++) {
